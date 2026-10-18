@@ -123,6 +123,9 @@ form{display:grid;gap:12px}
 .installa-box p{margin:0 0 6px;font-size:.95rem}
 .installa-azioni{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
 
+.da-collana{display:grid;gap:10px}
+.da-collana .link{justify-self:start;text-align:left}
+.collana-box{display:grid;gap:10px;padding:12px;border-radius:10px;background:var(--rosa)}
 .foto-righe{display:flex;align-items:center;gap:6px 14px;flex-wrap:wrap}
 .foto-righe .bottone{display:inline-flex;align-items:center;gap:8px}
 .foto-righe svg{width:20px;height:20px}
@@ -193,6 +196,14 @@ form{display:grid;gap:12px}
       </button>
       <p class="aiuto">Le cifre sotto il codice a barre, con o senza trattini. Se il libro non ha ISBN, compila direttamente la scheda.</p>
       <p class="esito" id="esito-isbn" aria-live="polite"></p>
+      <div class="da-collana">
+        <button class="link" type="button" id="apri-collana">Aggiungi da una collana (per i volumi senza ISBN stampato)</button>
+        <div class="collana-box" id="collana-box" hidden>
+          <label>Collana<select id="collana"></select></label>
+          <label>Volume<select id="volume"><option value="">Carico l'elenco…</option></select></label>
+          <p class="aiuto" id="collana-nota"></p>
+        </div>
+      </div>
     </form>
 
     <form class="libro-form" id="form-libro" novalidate>
@@ -219,7 +230,7 @@ form{display:grid;gap:12px}
       </div>
       <label>Scaffale<select name="categoria"><option value="">Scegli lo scaffale…</option></select></label>
       <label>Trama <textarea name="trama" rows="4"></textarea></label>
-      <input type="hidden" name="isbn"><input type="hidden" name="copertina">
+      <input type="hidden" name="isbn"><input type="hidden" name="copertina"><input type="hidden" name="collana">
       <div class="azioni">
         <p class="esito" id="esito-libro" aria-live="polite"></p>
         <button class="bottone" type="submit">Salva nel catalogo</button>
@@ -687,6 +698,82 @@ $("#scegli-foto").addEventListener("change", async e => {
 });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#foto").hidden) chiudiFoto(); });
 
+/* ---------- inserimento da una collana ----------
+   Elenco in collane.json (titolo, autori, ISBN, anno): scelto il volume, la scheda si compila,
+   si cerca una copertina e, se non c'è, si fotografa. I volumi già in catalogo hanno la ✓. */
+let COLLANE = null;
+const isbnInCatalogo = new Set();
+const chiaveTitolo = t => String(t).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/^(il|lo|la|i|gli|le|un|uno|una)\s+|^(l|un)'\s*/, "");
+
+async function apriCollane() {
+  $("#collana-box").hidden = false;
+  $("#apri-collana").hidden = true;
+  if (COLLANE) return;
+  try {
+    const [c, cat] = await Promise.all([
+      fetch("collane.json", { cache: "no-store" }).then(r => r.json()),
+      fetch(API_URL + "?azione=catalogo", { cache: "no-store" }).then(r => r.json()).catch(() => null)
+    ]);
+    COLLANE = c;
+    (cat?.libri || []).forEach(l => { if (l.isbn) isbnInCatalogo.add(String(l.isbn)); });
+    $("#collana").innerHTML = COLLANE.map((c, i) => `<option value="${i}">${esc(c.nome)} — ${esc(c.editore)}</option>`).join("");
+    disegnaVolumi();
+  } catch (err) {
+    $("#collana-nota").textContent = "Elenco delle collane non disponibile: ricarica la pagina.";
+  }
+}
+function disegnaVolumi() {
+  if (!COLLANE) return;
+  const c = COLLANE[Number($("#collana").value) || 0];
+  const vol = [...c.volumi].sort((a, b) => chiaveTitolo(a.titolo).localeCompare(chiaveTitolo(b.titolo), "it"));
+  const mancanti = vol.filter(v => !isbnInCatalogo.has(v.isbn)).length;
+  $("#volume").innerHTML = `<option value="">Scegli il titolo… (${mancanti} su ${vol.length} da inserire)</option>` +
+    vol.map(v => {
+      const gia = isbnInCatalogo.has(v.isbn);
+      return `<option value="${v.isbn}"${gia ? " disabled" : ""}>${gia ? "✓ " : ""}${esc(v.titolo)}${v.autori ? " — " + esc(v.autori) : ""}</option>`;
+    }).join("") +
+    `<option value="altro">Un altro volume della collana (scrivo io il titolo)</option>`;
+  $("#collana-nota").textContent = c.nota || "";
+}
+$("#apri-collana").addEventListener("click", apriCollane);
+$("#collana").addEventListener("change", disegnaVolumi);
+$("#volume").addEventListener("change", async e => {
+  const val = e.target.value;
+  if (!val || !COLLANE) return;
+  const c = COLLANE[Number($("#collana").value) || 0];
+  const scaffale = libro.categoria.value;
+  svuotaLibro();
+  libro.categoria.value = scaffale;
+  libro.collana.value = c.nome;
+  libro.editore.value = c.editore;
+  $("#isbn").value = "";
+  const esito = $("#esito-isbn");
+  esito.className = "esito ok";
+  if (val === "altro") {
+    disegnaAnteprima();
+    esito.textContent = "Scrivi titolo e autore, poi fotografa la copertina.";
+    libro.titolo.focus();
+    return;
+  }
+  const v = c.volumi.find(x => x.isbn === val);
+  libro.isbn.value = v.isbn; libro.titolo.value = v.titolo; libro.autori.value = v.autori || ""; libro.anno.value = v.anno || "";
+  disegnaAnteprima();
+  esito.textContent = "Scheda compilata dall'elenco. Cerco una copertina…";
+  const giro = ++giroCopertina;
+  const g = await daGoogleBooks(v.isbn).catch(() => null);
+  if (giro !== giroCopertina) return;
+  if (g?.trama) libro.trama.value = g.trama;
+  const cop = await primaImmagine(candidatiCopertina(v.isbn, [g?.copertina]));
+  if (giro !== giroCopertina) return;
+  libro.copertina.value = cop;
+  disegnaAnteprima();
+  esito.textContent = cop
+    ? "Scheda compilata dall'elenco, copertina trovata." + (libro.categoria.value ? " Controlla e salva." : " Scegli lo scaffale e salva.")
+    : "Scheda compilata dall'elenco. Copertina non trovata: fotografala.";
+  const dove = cop ? (libro.categoria.value ? libro.querySelector('[type="submit"]') : libro.categoria) : ($("#fotografa").hidden ? $(".scegli") : $("#fotografa"));
+  dove.scrollIntoView({ block: "center", behavior: "smooth" });
+});
+
 /* ---------- scheda del libro ---------- */
 const libro = $("#form-libro");
 
@@ -707,6 +794,7 @@ $("#togli-copertina").addEventListener("click", () => {
 function svuotaLibro() {
   giroCopertina++; caricamento = null; fotoLocale = "";
   libro.reset();
+  libro.isbn.value = ""; libro.copertina.value = ""; libro.collana.value = "";   // i campi nascosti non si azzerano con reset()
   libro.querySelectorAll("[aria-invalid]").forEach(x => x.removeAttribute("aria-invalid"));
   $("#esito-libro").textContent = "";
   disegnaAnteprima();
@@ -734,7 +822,7 @@ async function salva(forza) {
     b.disabled = false; b.textContent = "Salva nel catalogo";
   }
   const dati = { azione: "aggiungiLibro", password: PASSWORD, forza: !!forza };
-  for (const k of ["isbn", "titolo", "autori", "editore", "anno", "categoria", "trama", "copertina"]) dati[k] = libro[k].value.trim();
+  for (const k of ["isbn", "titolo", "autori", "editore", "anno", "categoria", "trama", "copertina", "collana"]) dati[k] = libro[k].value.trim();
   if (dati.copertina.startsWith("data:")) dati.copertina = "";
   if (dati.copertina.includes("default=false")) dati.copertina = dati.copertina.replace(/[?&]default=false/, "");   // l'immagine è stata verificata nell'anteprima
 
@@ -746,11 +834,14 @@ async function salva(forza) {
     $("#lista-aggiunti").insertAdjacentHTML("afterbegin", `<li><span>${esc(r.id)}</span>${esc(dati.titolo)}</li>`);
     $("#aggiunti").hidden = false;
     svuotaLibro();
+    libro.categoria.value = dati.categoria;   // lo scaffale resta quello di prima: comodo per inserire una serie
+    disegnaAnteprima();
     $("#isbn").value = "";
     $("#esito-isbn").className = "esito ok";
     $("#esito-isbn").textContent = `«${dati.titolo}» salvato nel catalogo (${r.id}). Puoi inserire il prossimo.`;
-    $("#isbn").focus();
     scrollTo({ top: 0, behavior: "smooth" });
+    if (dati.isbn) isbnInCatalogo.add(dati.isbn);
+    if (!$("#collana-box").hidden) { disegnaVolumi(); $("#volume").focus(); } else $("#isbn").focus();
   } else if (r.duplicato) {
     esito.className = "esito errore";
     esito.innerHTML = `${esc(r.errore)}<br><button class="bottone chiaro piccolo" type="button" id="forza">Aggiungilo comunque</button>`;

@@ -127,6 +127,12 @@ Note tecniche:
 - Il form resta sempre modificabile; senza risultati si compila a mano.
 - Scelta della categoria da menu; "Salva" → `aggiungiLibro`.
 
+## Collane senza ISBN stampato
+
+`collane.json` contiene elenchi di volumi (titolo, autori, ISBN, anno) per le serie che non riportano l'ISBN sul libro, come la *Biblioteca dei ragazzi* (Poligrafici Editoriale, allegata ai quotidiani QN, 2002-2003; 42 titoli ricostruiti dai cataloghi dei librai). Nell'area riservata, "Aggiungi da una collana" mostra i titoli in ordine alfabetico con la ✓ su quelli già in catalogo: scelto il volume, la scheda si compila, si cerca una copertina e altrimenti si fotografa. Lo scaffale scelto resta impostato per il libro successivo. Per aggiungere una collana basta un nuovo oggetto nel file.
+
+Il tab Libri ha la colonna `collana` (mostrata nella scheda del catalogo e usata dalla ricerca); `setup` la aggiunge in fondo ai fogli creati prima.
+
 ## App installabili
 
 Il sito si installa come app dal telefono: su Android Chrome propone "Installa app" (o il pulsante in fondo alla pagina), su iPhone da Safari con Condividi → "Aggiungi alla schermata Home". Le app sono due: **Biblioteca** (catalogo) e **Gestione libri** (area riservata, icona con il "+").

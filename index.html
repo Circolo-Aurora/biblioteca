@@ -358,7 +358,7 @@ async function carica() {
 }
 
 function usa(d) {
-  LIBRI = (d.libri || []).map(l => ({ ...l, _testo: norm([l.titolo, l.autori, l.editore, l.isbn, l.categoria].join(" ")) }));
+  LIBRI = (d.libri || []).map(l => ({ ...l, _testo: norm([l.titolo, l.autori, l.editore, l.isbn, l.categoria, l.collana].join(" ")) }));
   const usate = [...new Set(LIBRI.map(l => l.categoria).filter(Boolean))];
   CATEGORIE = (d.categorie?.length ? d.categorie : usate).filter(c => usate.includes(c));
   if (filtro.categoria && !CATEGORIE.includes(filtro.categoria)) filtro.categoria = "";
@@ -442,7 +442,7 @@ const dialogo = $("#dialogo");
 function apri(id) {
   const l = LIBRI.find(x => x.id === id);
   if (!l) return;
-  const dati = [["Editore", l.editore], ["Anno", l.anno], ["ISBN", l.isbn]].filter(d => d[1]);
+  const dati = [["Collana", l.collana], ["Editore", l.editore], ["Anno", l.anno], ["ISBN", l.isbn]].filter(d => d[1]);
   $("#scheda").innerHTML = `
     <button class="chiudi" type="button" aria-label="Chiudi" data-chiudi>×</button>
     <div class="scheda-testa">

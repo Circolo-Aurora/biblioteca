@@ -1,0 +1,261 @@
+[
+ {
+  "nome": "Biblioteca dei ragazzi",
+  "editore": "Poligrafici Editoriale",
+  "nota": "Collana allegata ai quotidiani QN (Il Resto del Carlino, La Nazione…), 2002-2003. Elenco ricostruito dai cataloghi dei librai: i numeri sul dorso non sono noti, tranne Gulliver (n. 1). Se un volume manca, usa «Un altro volume».",
+  "volumi": [
+   {
+    "titolo": "I viaggi di Gulliver",
+    "autori": "Jonathan Swift",
+    "isbn": "9788888666020",
+    "anno": "2002"
+   },
+   {
+    "titolo": "Il giro del mondo in 80 giorni",
+    "autori": "Jules Verne",
+    "isbn": "9788888666044",
+    "anno": "2002"
+   },
+   {
+    "titolo": "David Copperfield",
+    "autori": "Charles Dickens",
+    "isbn": "9788888666105",
+    "anno": "2003"
+   },
+   {
+    "titolo": "I tre moschettieri",
+    "autori": "Alexandre Dumas",
+    "isbn": "9788888666136",
+    "anno": "2003"
+   },
+   {
+    "titolo": "Le avventure del barone di Münchhausen",
+    "autori": "Rudolf Erich Raspe, Gottfried August Bürger",
+    "isbn": "9788888666174",
+    "anno": "2003"
+   },
+   {
+    "titolo": "Viaggio al centro della terra",
+    "autori": "Jules Verne",
+    "isbn": "9788888666181",
+    "anno": "2003"
+   },
+   {
+    "titolo": "Il libro della giungla",
+    "autori": "Rudyard Kipling",
+    "isbn": "9788888666198",
+    "anno": "2003"
+   },
+   {
+    "titolo": "Gordon Pym",
+    "autori": "Edgar Allan Poe",
+    "isbn": "9788888666211",
+    "anno": "2003"
+   },
+   {
+    "titolo": "Le avventure di Tom Sawyer",
+    "autori": "Mark Twain",
+    "isbn": "9788888666228",
+    "anno": "2003"
+   },
+   {
+    "titolo": "Capitani coraggiosi",
+    "autori": "Rudyard Kipling",
+    "isbn": "9788888666235",
+    "anno": "2003"
+   },
+   {
+    "titolo": "Il capitan Fracassa",
+    "autori": "Théophile Gautier",
+    "isbn": "9788888666259",
+    "anno": "2003"
+   },
+   {
+    "titolo": "Il fantasma di Canterville. Il principe felice e altre fiabe",
+    "autori": "Oscar Wilde",
+    "isbn": "9788888666266",
+    "anno": "2003"
+   },
+   {
+    "titolo": "Le tigri di Mompracem",
+    "autori": "Emilio Salgari",
+    "isbn": "9788888666273",
+    "anno": "2003"
+   },
+   {
+    "titolo": "I ragazzi della via Pál",
+    "autori": "Ferenc Molnár",
+    "isbn": "9788888666280",
+    "anno": "2003"
+   },
+   {
+    "titolo": "La figlia del capitano",
+    "autori": "Aleksandr Puškin",
+    "isbn": "9788888666297",
+    "anno": "2003"
+   },
+   {
+    "titolo": "La freccia nera",
+    "autori": "Robert Louis Stevenson",
+    "isbn": "9788888666303",
+    "anno": "2003"
+   },
+   {
+    "titolo": "Tarzan delle scimmie",
+    "autori": "Edgar Rice Burroughs",
+    "isbn": "9788888666310",
+    "anno": "2003"
+   },
+   {
+    "titolo": "Le avventure di Huckleberry Finn",
+    "autori": "Mark Twain",
+    "isbn": "9788888666327",
+    "anno": "2003"
+   },
+   {
+    "titolo": "Piccole donne",
+    "autori": "Louisa May Alcott",
+    "isbn": "9788888666334",
+    "anno": "2003"
+   },
+   {
+    "titolo": "Il meraviglioso mago di Oz",
+    "autori": "L. Frank Baum",
+    "isbn": "9788888666457",
+    "anno": "2003"
+   },
+   {
+    "titolo": "Moby Dick",
+    "autori": "Herman Melville",
+    "isbn": "9788888666464",
+    "anno": "2003"
+   },
+   {
+    "titolo": "Il giornalino di Gian Burrasca",
+    "autori": "Vamba",
+    "isbn": "9788888666471",
+    "anno": "2003"
+   },
+   {
+    "titolo": "L'isola del tesoro",
+    "autori": "Robert Louis Stevenson",
+    "isbn": "9788888666488",
+    "anno": "2003"
+   },
+   {
+    "titolo": "Ventimila leghe sotto i mari",
+    "autori": "Jules Verne",
+    "isbn": "9788888666495",
+    "anno": "2003"
+   },
+   {
+    "titolo": "Il piccolo lord",
+    "autori": "Frances Hodgson Burnett",
+    "isbn": "9788888666501",
+    "anno": "2003"
+   },
+   {
+    "titolo": "Pel di carota",
+    "autori": "Jules Renard",
+    "isbn": "9788888666518",
+    "anno": "2003"
+   },
+   {
+    "titolo": "Il principe e il povero",
+    "autori": "Mark Twain",
+    "isbn": "9788888666525",
+    "anno": "2003"
+   },
+   {
+    "titolo": "I pirati della Malesia",
+    "autori": "Emilio Salgari",
+    "isbn": "9788888666532",
+    "anno": "2003"
+   },
+   {
+    "titolo": "Alice nel paese delle meraviglie. Alice nello specchio",
+    "autori": "Lewis Carroll",
+    "isbn": "9788888666549",
+    "anno": "2003"
+   },
+   {
+    "titolo": "Il gran sole di Hiroshima",
+    "autori": "Karl Bruckner",
+    "isbn": "9788888666556",
+    "anno": "2003"
+   },
+   {
+    "titolo": "Storie della storia del mondo",
+    "autori": "Laura Orvieto",
+    "isbn": "9788888666563",
+    "anno": "2003"
+   },
+   {
+    "titolo": "Piccoli uomini",
+    "autori": "Louisa May Alcott",
+    "isbn": "9788888666570",
+    "anno": "2003"
+   },
+   {
+    "titolo": "L'isola misteriosa",
+    "autori": "Jules Verne",
+    "isbn": "9788888666587",
+    "anno": "2003"
+   },
+   {
+    "titolo": "Kim",
+    "autori": "Rudyard Kipling",
+    "isbn": "9788888666594",
+    "anno": "2003"
+   },
+   {
+    "titolo": "Jolanda la figlia del Corsaro Nero",
+    "autori": "Emilio Salgari",
+    "isbn": "9788888666600",
+    "anno": "2003"
+   },
+   {
+    "titolo": "Senza famiglia",
+    "autori": "Hector Malot",
+    "isbn": "9788888666617",
+    "anno": "2003"
+   },
+   {
+    "titolo": "La guerra dei bottoni",
+    "autori": "Louis Pergaud",
+    "isbn": "9788888666624",
+    "anno": "2003"
+   },
+   {
+    "titolo": "Tartarino di Tarascona",
+    "autori": "Alphonse Daudet",
+    "isbn": "9788888666631",
+    "anno": "2003"
+   },
+   {
+    "titolo": "Un americano alla corte di re Artù",
+    "autori": "Mark Twain",
+    "isbn": "9788888666648",
+    "anno": "2003"
+   },
+   {
+    "titolo": "Il barone rampante",
+    "autori": "Italo Calvino",
+    "isbn": "9788888666655",
+    "anno": "2003"
+   },
+   {
+    "titolo": "Dal mio mulino",
+    "autori": "Alphonse Daudet",
+    "isbn": "9788888666662",
+    "anno": "2003"
+   },
+   {
+    "titolo": "Novelle scelte da Le mille e una notte",
+    "autori": "",
+    "isbn": "9788888666693",
+    "anno": "2003"
+   }
+  ]
+ }
+]

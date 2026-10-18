@@ -52,7 +52,7 @@ const NOME_MITTENTE = "Biblioteca del Circolo ARCI Aurora";   // nome che compar
 const URL_SITO = "https://circolo-aurora.github.io/biblioteca/";
 
 const TAB = {
-  Libri:    ["id", "isbn", "titolo", "autori", "editore", "anno", "categoria", "copertina", "trama", "stato", "data_inserimento"],
+  Libri:    ["id", "isbn", "titolo", "autori", "editore", "anno", "categoria", "copertina", "trama", "stato", "data_inserimento", "collana"],
   Prestiti: ["id_prestito", "id_libro", "titolo", "nome", "email", "telefono", "data_richiesta", "data_ritiro", "data_restituzione", "stato", "scadenza"],
   Desideri: ["data", "titolo", "autore", "nota", "nome", "email", "stato"],
   Log:      ["timestamp", "azione", "id", "dettaglio"],
@@ -70,7 +70,7 @@ const STATI_PRESTITO  = ["richiesto", "in prestito", "restituito", "annullato"];
 const STATI_DESIDERIO = ["nuovo", "acquistato", "scartato"];
 
 // Campi del tab Libri che il sito pubblico riceve
-const CAMPI_PUBBLICI = ["id", "isbn", "titolo", "autori", "editore", "anno", "categoria", "copertina", "trama", "stato", "data_inserimento"];
+const CAMPI_PUBBLICI = ["id", "isbn", "titolo", "autori", "editore", "anno", "categoria", "copertina", "trama", "stato", "data_inserimento", "collana"];
 
 // ---- Endpoint ----------------------------------------------------------------------
 
@@ -184,7 +184,8 @@ function aggiungiLibro_(d) {
       copertina: /^https:\/\//.test(String(d.copertina || "")) ? pulisci_(d.copertina, 500) : "",
       trama: pulisci_(d.trama, 3000),
       stato: "disponibile",
-      data_inserimento: new Date()
+      data_inserimento: new Date(),
+      collana: pulisci_(d.collana, 150)
     });
     log_("aggiungiLibro", id, titolo);
     cacheSvuota_("catalogo");
@@ -414,6 +415,12 @@ function setup() {
   Object.keys(TAB).forEach(nome => {
     const sh = ss.getSheetByName(nome) || ss.insertSheet(nome);
     if (!sh.getRange(1, 1).getValue()) sh.getRange(1, 1, 1, TAB[nome].length).setValues([TAB[nome]]);
+    else {
+      // fogli già creati: aggiunge in fondo le colonne nuove (es. "collana"), senza toccare le altre
+      const presenti = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(h => String(h).trim());
+      const nuove = TAB[nome].filter(h => presenti.indexOf(h) < 0);
+      if (nuove.length) sh.getRange(1, sh.getLastColumn() + 1, 1, nuove.length).setValues([nuove]);
+    }
     sh.getRange(1, 1, 1, sh.getLastColumn()).setFontWeight("bold");
     sh.setFrozenRows(1);
   });
