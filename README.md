@@ -21,7 +21,7 @@ GitHub Pages (frontend statico)  ──fetch──>  Apps Script (web app)  ─�
 - **Frontend**: HTML/CSS/JS senza framework, pubblicato con GitHub Pages dall'organizzazione `Circolo-Aurora`, repo `biblioteca`.
 - **Backend**: un progetto Apps Script collegato al Google Sheet, pubblicato come web app ("esegui come: me", "accesso: chiunque"). Account proprietario: quello della Sagra di Penco.
 - **Dati**: un Google Sheet, modificabile anche a mano.
-- **Lookup ISBN**: fatto dal browser direttamente su Google Books e Open Library (entrambe accettano chiamate cross-origin), quindi Apps Script riceve solo il libro già compilato.
+- **Lookup ISBN**: tre fonti in parallelo. Google Books e Open Library direttamente dal browser; il catalogo nazionale SBN (opac.sbn.it, servizio non documentato) tramite Apps Script, perché non accetta chiamate dal browser. Per ogni campo vale la prima fonte che lo ha (Google Books → SBN → Open Library); le copertine arrivano solo da Google Books e Open Library.
 
 ## Struttura del repo
 
@@ -94,6 +94,7 @@ Elenco delle categorie/scaffali (usato per la convalida e restituito al frontend
 | chiamata | metodo | input | output |
 |---|---|---|---|
 | `?azione=catalogo` | GET | — | `{ libri: [...], categorie: [...] }` (solo campi pubblici) |
+| `?azione=isbn&isbn=…` | GET | — | ricerca nel catalogo nazionale SBN (titolo, autori, editore, anno), in cache 6 ore |
 | `?azione=esito&rid=…` | GET | — | la risposta di un POST già inviato (se quella diretta si è persa) |
 | `richiesta` | POST | `id_libro, nome, email, telefono` | riga in Prestiti (`P0001`…), libro → `prenotato`, mail alla bibliotecaria (rispondendo si scrive al richiedente) e conferma al richiedente; se il libro non è più disponibile `{ok:false, stato}` |
 | `desiderio` | POST | `titolo, autore, nota, nome?, email?` | conferma (fase 4) |

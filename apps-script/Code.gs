@@ -4,8 +4,10 @@
  * Fase 1: catalogo pubblico, login dell'area riservata, inserimento libri.
  * Fase 2: richieste di prestito dal sito, con mail alla bibliotecaria e conferma a chi chiede.
  *
- * DOPO AVER INCOLLATO UNA VERSIONE NUOVA CHE MANDA MAIL: esegui una volta "provaMail" dall'editor
- * e concedi il permesso di inviare email, poi pubblica la nuova versione (vedi sotto).
+ * Ricerca ISBN: il sito interroga Google Books e Open Library; il catalogo nazionale SBN passa da qui (azione "isbn").
+ *
+ * DOPO AVER INCOLLATO UNA VERSIONE NUOVA: esegui una volta "provaMail" e "provaIsbn" dall'editor e concedi
+ * i permessi (inviare email, collegarsi a siti esterni), poi pubblica la nuova versione (vedi sotto).
  *
  * GESTIONE DEI PRESTITI NEL FOGLIO (tab Prestiti, colonna "stato"):
  *   richiesto   → la riga la crea il sito; il libro risulta "prenotato"
@@ -80,6 +82,7 @@ function doGet(e) {
       }
       return json_('{"ok":true,' + json.slice(1));
     }
+    if (p.azione === "isbn") return risposta_(cercaSbn_(p.isbn));
     if (p.azione === "esito") {
       // la pagina chiede la risposta di un invio (codice rid) quando quella diretta non le è arrivata
       const r = p.rid ? CacheService.getScriptCache().get("esito_" + String(p.rid).slice(0, 40)) : null;
@@ -316,6 +319,49 @@ function prossimoIdPrestito_() {
     return n ? Math.max(m, Number(n[1])) : m;
   }, 0);
   return "P" + String(max + 1).padStart(4, "0");
+}
+
+// Ricerca per ISBN nel catalogo nazionale SBN (opac.sbn.it), che copre quasi tutti i libri pubblicati in Italia.
+// Il servizio non accetta chiamate dirette dal browser, per questo passa da qui. Dà titolo, autori, editore, anno (niente copertine).
+// Servizio non documentato ufficialmente: se cambia, la pagina continua a funzionare con Google Books e Open Library.
+function cercaSbn_(v) {
+  const isbn = normalizzaIsbn_(v || "");
+  if (!isbn) return { ok: false, errore: "ISBN non valido." };
+  const cache = CacheService.getScriptCache();
+  const salvato = cache.get("sbn_" + isbn);
+  if (salvato) return JSON.parse(salvato);
+  let out;
+  try {
+    const r = UrlFetchApp.fetch("https://opac.sbn.it/opacmobilegw/search.json?isbn=" + isbn, { muteHttpExceptions: true, followRedirects: true });
+    if (r.getResponseCode() !== 200) return { ok: false, errore: "SBN ha risposto " + r.getResponseCode() };
+    const rec = (JSON.parse(r.getContentText()).briefRecords || [])[0];
+    out = rec ? Object.assign({ ok: true, trovato: true }, campiSbn_(rec)) : { ok: true, trovato: false };
+  } catch (err) {
+    return { ok: false, errore: "SBN non raggiungibile: " + (err.message || err) };
+  }
+  try { cache.put("sbn_" + isbn, JSON.stringify(out), 21600); } catch (err) {}
+  return out;
+}
+
+// "Limonov / Emmanuel Carrère ; traduzione di …" · "Carrère, Emmanuel <1957- >" · "Milano : Adelphi, 2012"
+function campiSbn_(rec) {
+  const p = s => String(s || "").replace(/\*/g, "").replace(/\s*<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+  const parti = p(rec.titolo).split(" / ");
+  const titolo = parti[0].split(/ [:;=] | \. - /)[0].trim();
+  let autori = (parti[1] || "").split(/ ; | \. - /)[0].replace(/\[[^\]]*\]/g, "").replace(/\s*\.\s*$/, "").trim();
+  if (!autori && rec.autorePrincipale) {
+    const a = p(rec.autorePrincipale).split(", ");
+    autori = a.length === 2 ? a[1] + " " + a[0] : a.join(" ");
+  }
+  const pub = p(rec.pubblicazione);
+  const ed = /:\s*([^,;:]+)/.exec(pub);
+  const anni = pub.match(/\d{4}/g);
+  return { titolo: titolo, autori: autori, editore: ed ? ed[1].trim() : "", anno: anni ? anni[anni.length - 1] : "" };
+}
+
+// Prova dall'editor (e concede il permesso di collegarsi a siti esterni): cerca due ISBN su SBN.
+function provaIsbn() {
+  ["9788845928987", "9788842092995"].forEach(i => console.log(i + " → " + JSON.stringify(cercaSbn_(i))));
 }
 
 // Da eseguire una volta dall'editor: concede il permesso di mandare mail e ne manda una di prova.

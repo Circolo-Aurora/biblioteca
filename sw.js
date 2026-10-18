@@ -3,7 +3,7 @@
    - immagini, icone, font e lettore di codici a barre: dalla copia salvata, scaricati una volta;
    - Apps Script, Google Books, Open Library: sempre dalla rete, mai salvati.
    Se cambi un'immagine o un'icona, aumenta VERSIONE: i telefoni scaricano tutto di nuovo. */
-const VERSIONE = "biblioteca-v1";
+const VERSIONE = "biblioteca-v2";
 const DA_SALVARE = [
   "./", "index.html", "admin.html", "manifest.webmanifest", "gestione.webmanifest",
   "assets/logo-aurora.png", "assets/icona-biblioteca.png",

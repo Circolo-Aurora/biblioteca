@@ -84,7 +84,10 @@ form{display:grid;gap:12px}
 .libro-form{grid-template-columns:1fr}
 .libro-testa{display:grid;grid-template-columns:96px 1fr;gap:14px;align-items:start}
 @media (min-width:560px){.libro-testa{grid-template-columns:130px 1fr}}
-.anteprima{display:grid;gap:6px}
+.anteprima{position:relative;min-width:0}
+.libro-testa > *{min-width:0}
+.togli{position:absolute;top:-9px;right:-9px;z-index:2;width:32px;height:32px;border-radius:50%;border:1.5px solid var(--inchiostro);
+  background:var(--pagina);font-size:1.3rem;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0 0 2px}
 .due{display:grid;grid-template-columns:minmax(0,1fr) 6.5em;gap:10px}
 .campi{display:grid;gap:12px}
 .libro-form .azioni .esito{flex-basis:100%}
@@ -162,7 +165,7 @@ form{display:grid;gap:12px}
       <div class="libro-testa">
         <div class="anteprima">
           <div id="anteprima"></div>
-          <button class="bottone chiaro piccolo" type="button" id="togli-copertina" hidden>Togli immagine</button>
+          <button class="togli" type="button" id="togli-copertina" aria-label="Togli l'immagine di copertina" title="Togli l'immagine" hidden>×</button>
         </div>
         <div class="campi">
           <label>Titolo<input name="titolo" autocomplete="off"></label>
@@ -350,6 +353,17 @@ async function daOpenLibrary(isbn) {
   };
 }
 
+// Catalogo nazionale SBN, tramite Apps Script (il servizio non accetta chiamate dirette dal browser)
+async function daSbn(isbn) {
+  const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 12000);
+  try {
+    const r = await fetch(`${API_URL}?azione=isbn&isbn=${isbn}`, { signal: ctrl.signal });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.errore || "SBN");
+    return d.trovato ? { titolo: d.titolo, autori: d.autori, editore: d.editore, anno: d.anno, trama: "", copertina: "" } : null;
+  } finally { clearTimeout(t); }
+}
+
 const formIsbn = $("#form-isbn");
 formIsbn.addEventListener("submit", async e => {
   e.preventDefault();
@@ -365,24 +379,26 @@ formIsbn.addEventListener("submit", async e => {
   }
   const bottone = formIsbn.querySelector("button");
   bottone.disabled = true; bottone.textContent = "Cerco…";
-  const [g, o] = await Promise.allSettled([daGoogleBooks(isbn), daOpenLibrary(isbn)]);
+  // tre fonti in parallelo; per ogni campo vale la prima che ce l'ha, in questo ordine
+  const NOMI = ["Google Books", "SBN", "Open Library"];
+  const esiti = await Promise.allSettled([daGoogleBooks(isbn), daSbn(isbn), daOpenLibrary(isbn)]);
   bottone.disabled = false; bottone.textContent = "Cerca";
-  const fonti = [g, o].filter(x => x.status === "fulfilled" && x.value).map(x => x.value);
+  esiti.forEach((x, i) => { if (x.status === "rejected") console.warn(NOMI[i], x.reason); });
+  const trovate = esiti.map((x, i) => (x.status === "fulfilled" && x.value) ? { nome: NOMI[i], dati: x.value } : null).filter(Boolean);
 
   svuotaLibro();
   libro.isbn.value = isbn;
-  if (!fonti.length) {
+  if (!trovate.length) {
     esito.className = "esito errore";
-    esito.textContent = [g, o].every(x => x.status === "rejected")
+    esito.textContent = esiti.every(x => x.status === "rejected")
       ? "Ricerca non riuscita (connessione?). Puoi compilare la scheda a mano: l'ISBN resta salvato."
       : "Nessun risultato per questo ISBN: compila la scheda a mano, l'ISBN resta salvato.";
     libro.titolo.focus();
   } else {
-    // per ogni campo il primo valore trovato (Google Books, poi Open Library)
-    for (const k of ["titolo", "autori", "editore", "anno", "trama", "copertina"]) libro[k].value = fonti.map(f => f[k]).find(Boolean) || "";
+    for (const k of ["titolo", "autori", "editore", "anno", "trama", "copertina"]) libro[k].value = trovate.map(f => f.dati[k]).find(Boolean) || "";
     if (!libro.copertina.value) libro.copertina.value = `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg?default=false`;
     esito.className = "esito ok";
-    esito.textContent = "Trovato. Controlla i dati e scegli lo scaffale.";
+    esito.textContent = `Trovato su ${trovate.map(f => f.nome).join(", ").replace(/, ([^,]*)$/, " e $1")}. Controlla i dati e scegli lo scaffale.`;
     libro.categoria.focus();
   }
   disegnaAnteprima();
