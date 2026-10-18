@@ -145,7 +145,8 @@ form.richiesta input[aria-invalid="true"]{border-color:var(--rosso);box-shadow:i
 .esito{margin:0;font-size:.95rem}
 .esito:empty{display:none}
 .esito.errore{color:var(--rosso)}
-form.richiesta .azioni{position:sticky;bottom:0;z-index:2;display:flex;gap:10px;margin:2px -20px 0;padding:12px 20px calc(14px + env(safe-area-inset-bottom));
+form.richiesta .azioni .esito{flex-basis:100%}
+form.richiesta .azioni{position:sticky;bottom:0;z-index:2;display:flex;flex-wrap:wrap;gap:10px;margin:2px -20px 0;padding:12px 20px calc(14px + env(safe-area-inset-bottom));
   background:var(--pagina);border-top:1.5px solid var(--rosa-scuro)}
 form.richiesta .azioni [type="submit"]{flex:1;max-width:320px}
 .fatto{padding:14px;border:2px solid var(--verde);border-radius:12px}
@@ -470,8 +471,8 @@ function formRichiesta(l) {
       <label>Nome e cognome<input name="nome" required autocomplete="name" enterkeyhint="next"></label>
       <label>Email<input name="email" type="email" required autocomplete="email" inputmode="email" enterkeyhint="next"></label>
       <label>Telefono<input name="telefono" type="tel" required autocomplete="tel" inputmode="tel" enterkeyhint="send"></label>
-      <p class="esito" id="esito" aria-live="polite"></p>
       <div class="azioni">
+        <p class="esito" id="esito" aria-live="polite"></p>
         <button class="bottone" type="submit">Invia la richiesta</button>
         <button class="bottone chiaro" type="button" data-annulla="${esc(l.id)}">Annulla</button>
       </div>

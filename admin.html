@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
+<meta name="robots" content="noindex">
+<title>Area riservata — Biblioteca del Circolo ARCI Aurora</title>
+<link rel="icon" href="assets/logo-aurora.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Patrick+Hand&display=swap" rel="stylesheet">
+<style>
+:root{
+  --rosa:#f3e5e3; --rosa-scuro:#e8d3d0; --pagina:#fffaf8; --inchiostro:#2e2624; --grigio:#6f6360;
+  --rosso:#df2f3a; --verde:#2c7a55;
+  --mano:'Patrick Hand','Comic Neue',cursive; --testo:'Atkinson Hyperlegible',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--rosa);color:var(--inchiostro);font:400 1rem/1.5 var(--testo)}
+img{max-width:100%;display:block}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--inchiostro);outline-offset:2px}
+[hidden]{display:none !important}
+.contenitore{max-width:760px;margin:0 auto;padding:0 16px}
+
+/* barra in alto, come nel catalogo */
+.testata{position:sticky;top:0;z-index:10;background:var(--rosa);border-bottom:1.5px solid var(--rosa-scuro)}
+.testata .contenitore{max-width:1080px}
+.marchio{display:flex;align-items:center;gap:12px;height:66px;color:inherit;text-decoration:none;width:max-content;max-width:100%}
+.marchio img{height:46px;width:auto;flex:none}
+.marchio .disegno{flex:0 1 auto;min-width:0;object-fit:contain;object-position:left center}
+.marchio h1{font:400 clamp(1.35rem,6vw,2.2rem)/1 var(--mano);margin:0;white-space:nowrap}
+@media (min-width:760px){.marchio{height:84px;gap:18px}.marchio img{height:60px}}
+
+main{padding:22px 0 60px}
+h2{font:400 2rem/1.05 var(--mano);margin:0 0 6px}
+.pannello{background:var(--pagina);border:1.5px solid var(--inchiostro);border-radius:14px;padding:18px 18px 20px;box-shadow:3px 4px 0 var(--rosa-scuro)}
+.sotto{margin:0 0 16px;color:var(--grigio)}
+.riga-titolo{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px}
+.link{border:0;background:none;padding:4px 0;text-decoration:underline;cursor:pointer;color:var(--inchiostro)}
+
+label{display:grid;gap:4px;font-size:.92rem;color:var(--grigio)}
+input,select,textarea{border:1.5px solid var(--inchiostro);border-radius:8px;padding:10px 12px;background:#fff;color:var(--inchiostro);font-size:1rem;width:100%}
+textarea{resize:vertical;min-height:5.5em;line-height:1.4}
+input[aria-invalid="true"],select[aria-invalid="true"]{border-color:var(--rosso);box-shadow:inset 0 0 0 1px var(--rosso)}
+.bottone{display:inline-block;border:2px solid var(--inchiostro);background:var(--inchiostro);color:var(--pagina);border-radius:10px;padding:11px 20px;font-weight:700;cursor:pointer;text-align:center;white-space:nowrap}
+.bottone.chiaro{background:transparent;color:var(--inchiostro)}
+.bottone.piccolo{padding:6px 12px;font-size:.9rem;border-width:1.5px}
+.bottone[disabled]{opacity:.6;cursor:wait}
+.esito{margin:0;font-size:.95rem}
+.esito:empty{display:none}
+.esito.errore{color:var(--rosso)}
+.esito.ok{color:var(--verde)}
+.esito .bottone{margin-top:8px}
+
+form{display:grid;gap:12px}
+
+/* ricerca ISBN */
+.isbn{margin-bottom:18px;padding-bottom:18px;border-bottom:1.5px dashed var(--rosa-scuro)}
+.isbn-riga{display:flex;gap:8px}
+.isbn-riga input{font-size:1.25rem;letter-spacing:.04em;padding:12px 14px}
+.aiuto{margin:-4px 0 0;font-size:.88rem;color:var(--grigio)}
+
+/* scheda del libro */
+.libro-form{grid-template-columns:1fr}
+.libro-testa{display:grid;grid-template-columns:96px 1fr;gap:14px;align-items:start}
+@media (min-width:560px){.libro-testa{grid-template-columns:130px 1fr}}
+.anteprima{display:grid;gap:6px}
+.due{display:grid;grid-template-columns:minmax(0,1fr) 6.5em;gap:10px}
+.campi{display:grid;gap:12px}
+.libro-form .azioni .esito{flex-basis:100%}
+.libro-form .azioni{position:sticky;bottom:0;display:flex;flex-wrap:wrap;gap:10px;margin:4px -18px -20px;padding:12px 18px calc(14px + env(safe-area-inset-bottom));
+  background:var(--pagina);border-top:1.5px solid var(--rosa-scuro);border-radius:0 0 14px 14px}
+.libro-form .azioni [type="submit"]{flex:1;max-width:320px}
+
+/* copertina: stessa resa del catalogo */
+.copertina{position:relative;container-type:inline-size;aspect-ratio:2/3;border-radius:2px 5px 5px 2px;overflow:hidden;color:var(--inchiostro);
+  background:color-mix(in srgb,var(--c,#888) 16%,var(--pagina));border:1.5px solid var(--inchiostro);box-shadow:2px 3px 0 var(--rosa-scuro)}
+.copertina::before{content:"";position:absolute;inset:0 auto 0 0;width:11%;background:var(--c,#888);border-right:1.5px solid var(--inchiostro)}
+.copertina .t{position:absolute;left:20%;right:8%;top:10%;font:400 14.5cqi/1.05 var(--mano);overflow-wrap:break-word;hyphens:auto}
+.copertina .a{position:absolute;left:20%;right:8%;bottom:8%;font-size:8.5cqi;line-height:1.2;color:var(--grigio)}
+.copertina img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:var(--pagina)}
+
+.aggiunti{margin-top:22px}
+.aggiunti h3{font:400 1.5rem/1.1 var(--mano);margin:0 0 6px}
+.aggiunti ul{margin:0;padding:0;list-style:none}
+.aggiunti li{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--rosa-scuro)}
+.aggiunti li span{color:var(--grigio);font-variant-numeric:tabular-nums}
+
+.piede{padding:16px 0 30px;font-size:.92rem}
+.piede a{color:var(--inchiostro)}
+</style>
+</head>
+<body>
+
+<header class="testata">
+  <div class="contenitore">
+    <a class="marchio" href="./">
+      <img src="assets/logo-aurora.png" alt="Circolo ARCI Aurora Leccio">
+      <h1>Biblioteca del Circolo</h1>
+      <img class="disegno" src="assets/icona-biblioteca.png" alt="">
+    </a>
+  </div>
+</header>
+
+<main class="contenitore">
+
+  <!-- accesso -->
+  <section class="pannello" id="accesso">
+    <h2>Area riservata</h2>
+    <p class="sotto">Per aggiungere libri al catalogo.</p>
+    <form id="form-accesso" novalidate>
+      <label>Password<input type="password" name="password" autocomplete="current-password" enterkeyhint="go"></label>
+      <p class="esito" id="esito-accesso" aria-live="polite"></p>
+      <div><button class="bottone" type="submit">Entra</button></div>
+    </form>
+  </section>
+
+  <!-- inserimento -->
+  <section class="pannello" id="inserimento" hidden>
+    <div class="riga-titolo">
+      <h2>Aggiungi un libro</h2>
+      <button class="link" type="button" id="esci">Esci</button>
+    </div>
+
+    <form class="isbn" id="form-isbn" novalidate>
+      <label for="isbn">ISBN</label>
+      <div class="isbn-riga">
+        <input id="isbn" inputmode="numeric" autocomplete="off" placeholder="978…" enterkeyhint="search">
+        <button class="bottone" type="submit">Cerca</button>
+      </div>
+      <p class="aiuto">Le cifre sotto il codice a barre, con o senza trattini. Se il libro non ha ISBN, compila direttamente la scheda.</p>
+      <p class="esito" id="esito-isbn" aria-live="polite"></p>
+    </form>
+
+    <form class="libro-form" id="form-libro" novalidate>
+      <div class="libro-testa">
+        <div class="anteprima">
+          <div id="anteprima"></div>
+          <button class="bottone chiaro piccolo" type="button" id="togli-copertina" hidden>Togli immagine</button>
+        </div>
+        <div class="campi">
+          <label>Titolo<input name="titolo" autocomplete="off"></label>
+          <label>Autori<input name="autori" autocomplete="off" placeholder="Separati da virgola"></label>
+        </div>
+      </div>
+      <div class="due">
+        <label>Editore<input name="editore" autocomplete="off"></label>
+        <label>Anno<input name="anno" inputmode="numeric" maxlength="4" autocomplete="off"></label>
+      </div>
+      <label>Scaffale<select name="categoria"><option value="">Scegli lo scaffale…</option></select></label>
+      <label>Trama <textarea name="trama" rows="4"></textarea></label>
+      <input type="hidden" name="isbn"><input type="hidden" name="copertina">
+      <div class="azioni">
+        <p class="esito" id="esito-libro" aria-live="polite"></p>
+        <button class="bottone" type="submit">Salva nel catalogo</button>
+        <button class="bottone chiaro" type="button" id="svuota">Svuota</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="aggiunti" id="aggiunti" hidden>
+    <h3>Aggiunti adesso</h3>
+    <ul id="lista-aggiunti"></ul>
+  </section>
+</main>
+
+<footer class="piede"><div class="contenitore"><a href="./">Torna al catalogo</a></div></footer>
+
+<script>
+/* ================= IMPOSTAZIONI ================= */
+const API_URL = "https://script.google.com/macros/s/AKfycby-9mfOH8GR7sk716ybS6NWo-8Q4LF_VZXZs0Xj7svTZI3io9WxKG9DedNnM7yjM3Ll/exec";
+
+const COLORI_SCAFFALE = {
+  "Albi illustrati": "#c98a1c", "Narrativa ragazzi": "#2f6690", "Fantasy e avventura": "#5a4a8c",
+  "Fumetti e graphic novel": "#df2f3a", "Gialli e mistero": "#2f4d4a", "Divulgazione": "#3f7a52",
+  "Classici": "#8a3a3a", "Narrativa adulti": "#6b5547"
+};
+const COLORI_RISERVA = ["#2f6690", "#5a4a8c", "#3f7a52", "#8a3a3a", "#c98a1c", "#2f4d4a", "#6b5547"];
+
+/* ================= CODICE ================= */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+const CHIAVE_PW = "biblioteca-aurora-pw";
+let PASSWORD = "";
+
+function colore(cat) {
+  if (COLORI_SCAFFALE[cat]) return COLORI_SCAFFALE[cat];
+  let h = 0; for (const c of String(cat)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return COLORI_RISERVA[h % COLORI_RISERVA.length];
+}
+document.addEventListener("error", e => {
+  if (e.target.matches?.("#anteprima img")) { e.target.remove(); libro.copertina.value = ""; $("#togli-copertina").hidden = true; }
+}, true);
+
+/* ---------- invio ad Apps Script (stesso schema del catalogo) ---------- */
+async function invia(dati) {
+  dati.rid = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  const ctrl = new AbortController(); const timer = setTimeout(() => ctrl.abort(), 45000);
+  try {
+    const r = await fetch(API_URL, { method: "POST", body: JSON.stringify(dati), redirect: "follow", signal: ctrl.signal });
+    return await r.json();
+  } catch (err) {
+    for (let i = 0; i < 6; i++) {
+      await new Promise(ok => setTimeout(ok, 2500));
+      try {
+        const x = await fetch(`${API_URL}?azione=esito&rid=${dati.rid}`, { cache: "no-store" }).then(r => r.json());
+        if (x.risposta) return x.risposta;
+      } catch {}
+    }
+    return { ok: false, errore: "Nessuna risposta dal server: controlla la connessione e riprova." };
+  } finally { clearTimeout(timer); }
+}
+
+// mostra "attendere" se il server ci mette (la prima chiamata della giornata può durare 10-20 secondi)
+function inAttesa(bottone, testo, esito) {
+  const orig = bottone.textContent;
+  bottone.disabled = true; bottone.textContent = testo;
+  const t = setTimeout(() => { esito.className = "esito"; esito.textContent = "Il server si sta avviando, ancora qualche secondo…"; }, 4000);
+  return () => { clearTimeout(t); bottone.disabled = false; bottone.textContent = orig; };
+}
+
+/* ---------- accesso ---------- */
+const accesso = $("#form-accesso");
+
+async function entra(password, silenzioso) {
+  const esito = $("#esito-accesso");
+  const fine = silenzioso ? () => {} : inAttesa(accesso.querySelector("button"), "Controllo…", esito);
+  const r = await invia({ azione: "login", password });
+  fine();
+  if (!r.ok) {
+    try { sessionStorage.removeItem(CHIAVE_PW); } catch {}
+    esito.className = "esito errore"; esito.textContent = r.errore || "Accesso non riuscito.";
+    accesso.password.focus();
+    return;
+  }
+  PASSWORD = password;
+  try { sessionStorage.setItem(CHIAVE_PW, password); } catch {}
+  const sel = libro.categoria;
+  sel.innerHTML = `<option value="">Scegli lo scaffale…</option>` + (r.categorie || []).map(c => `<option>${esc(c)}</option>`).join("");
+  $("#accesso").hidden = true;
+  $("#inserimento").hidden = false;
+  esito.textContent = "";
+  disegnaAnteprima();
+  $("#isbn").focus();
+}
+
+accesso.addEventListener("submit", e => {
+  e.preventDefault();
+  const pw = accesso.password.value;
+  if (!pw) { $("#esito-accesso").className = "esito errore"; $("#esito-accesso").textContent = "Scrivi la password."; return; }
+  entra(pw);
+});
+
+$("#esci").addEventListener("click", () => {
+  PASSWORD = "";
+  try { sessionStorage.removeItem(CHIAVE_PW); } catch {}
+  accesso.reset();
+  $("#inserimento").hidden = true; $("#aggiunti").hidden = true; $("#accesso").hidden = false;
+  accesso.password.focus();
+});
+
+/* ---------- ISBN ---------- */
+// ISBN-10 o ISBN-13, con o senza trattini → ISBN-13 di sole cifre; "" se non valido (come nello script)
+function normalizzaIsbn(v) {
+  const s = String(v).toUpperCase().replace(/[^0-9X]/g, "");
+  const cifra13 = b => (10 - b.split("").reduce((t, c, i) => t + Number(c) * (i % 2 ? 3 : 1), 0) % 10) % 10;
+  if (/^\d{13}$/.test(s)) return cifra13(s.slice(0, 12)) === Number(s[12]) ? s : "";
+  if (/^\d{9}[\dX]$/.test(s)) {
+    const somma = s.split("").reduce((t, c, i) => t + (c === "X" ? 10 : Number(c)) * (10 - i), 0);
+    if (somma % 11) return "";
+    const base = "978" + s.slice(0, 9);
+    return base + cifra13(base);
+  }
+  return "";
+}
+
+const testoPulito = s => String(s || "")
+  .replace(/<\/?(br|p|div|li)[^>]*>/gi, " ").replace(/<[^>]+>/g, "")
+  .replace(/\s+/g, " ").replace(/\s+([.,;:!?])/g, "$1").trim();
+
+async function daGoogleBooks(isbn) {
+  const r = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&maxResults=1`);
+  if (!r.ok) throw new Error("Google Books " + r.status);
+  const v = (await r.json()).items?.[0]?.volumeInfo;
+  if (!v) return null;
+  const img = v.imageLinks?.thumbnail || v.imageLinks?.smallThumbnail || "";
+  return {
+    titolo: v.title || "",
+    autori: (v.authors || []).join(", "),
+    editore: v.publisher || "",
+    anno: (String(v.publishedDate || "").match(/\d{4}/) || [""])[0],
+    trama: testoPulito(v.description),
+    copertina: img.replace(/^http:/, "https:").replace("&edge=curl", "")
+  };
+}
+
+async function daOpenLibrary(isbn) {
+  const r = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
+  if (!r.ok) throw new Error("Open Library " + r.status);
+  const b = (await r.json())[`ISBN:${isbn}`];
+  if (!b) return null;
+  return {
+    titolo: b.title || "",
+    autori: (b.authors || []).map(a => a.name).join(", "),
+    editore: b.publishers?.[0]?.name || "",
+    anno: (String(b.publish_date || "").match(/\d{4}/) || [""])[0],
+    trama: "",
+    copertina: b.cover?.medium || b.cover?.large || ""
+  };
+}
+
+const formIsbn = $("#form-isbn");
+formIsbn.addEventListener("submit", async e => {
+  e.preventDefault();
+  const esito = $("#esito-isbn");
+  const grezzo = $("#isbn").value.trim();
+  esito.className = "esito"; esito.textContent = "";
+  if (!grezzo) { $("#isbn").focus(); return; }
+  const isbn = normalizzaIsbn(grezzo);
+  if (!isbn) {
+    $("#isbn").setAttribute("aria-invalid", "true");
+    esito.className = "esito errore"; esito.textContent = "ISBN non valido: controlla le cifre.";
+    return;
+  }
+  const bottone = formIsbn.querySelector("button");
+  bottone.disabled = true; bottone.textContent = "Cerco…";
+  const [g, o] = await Promise.allSettled([daGoogleBooks(isbn), daOpenLibrary(isbn)]);
+  bottone.disabled = false; bottone.textContent = "Cerca";
+  const fonti = [g, o].filter(x => x.status === "fulfilled" && x.value).map(x => x.value);
+
+  svuotaLibro();
+  libro.isbn.value = isbn;
+  if (!fonti.length) {
+    esito.className = "esito errore";
+    esito.textContent = [g, o].every(x => x.status === "rejected")
+      ? "Ricerca non riuscita (connessione?). Puoi compilare la scheda a mano: l'ISBN resta salvato."
+      : "Nessun risultato per questo ISBN: compila la scheda a mano, l'ISBN resta salvato.";
+    libro.titolo.focus();
+  } else {
+    // per ogni campo il primo valore trovato (Google Books, poi Open Library)
+    for (const k of ["titolo", "autori", "editore", "anno", "trama", "copertina"]) libro[k].value = fonti.map(f => f[k]).find(Boolean) || "";
+    if (!libro.copertina.value) libro.copertina.value = `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg?default=false`;
+    esito.className = "esito ok";
+    esito.textContent = "Trovato. Controlla i dati e scegli lo scaffale.";
+    libro.categoria.focus();
+  }
+  disegnaAnteprima();
+});
+$("#isbn").addEventListener("input", e => e.target.removeAttribute("aria-invalid"));
+
+/* ---------- scheda del libro ---------- */
+const libro = $("#form-libro");
+
+function disegnaAnteprima() {
+  const t = libro.titolo.value.trim() || "Titolo", a = libro.autori.value.trim(), img = libro.copertina.value;
+  $("#anteprima").innerHTML = `<div class="copertina" style="--c:${colore(libro.categoria.value)}">
+    <span class="t">${esc(t)}</span><span class="a">${esc(a)}</span>
+    ${img ? `<img src="${esc(img)}" alt="Copertina">` : ""}</div>`;
+  $("#togli-copertina").hidden = !img;
+}
+["titolo", "autori"].forEach(n => libro[n].addEventListener("input", disegnaAnteprima));
+libro.categoria.addEventListener("change", disegnaAnteprima);
+libro.addEventListener("input", e => e.target.removeAttribute?.("aria-invalid"));
+$("#togli-copertina").addEventListener("click", () => { libro.copertina.value = ""; disegnaAnteprima(); });
+
+function svuotaLibro() {
+  libro.reset();
+  libro.querySelectorAll("[aria-invalid]").forEach(x => x.removeAttribute("aria-invalid"));
+  $("#esito-libro").textContent = "";
+  disegnaAnteprima();
+}
+$("#svuota").addEventListener("click", () => {
+  svuotaLibro(); $("#isbn").value = ""; $("#esito-isbn").textContent = ""; $("#isbn").focus();
+});
+
+async function salva(forza) {
+  const esito = $("#esito-libro");
+  esito.className = "esito"; esito.textContent = "";
+  const mancanti = [];
+  if (!libro.titolo.value.trim()) mancanti.push(libro.titolo);
+  if (!libro.categoria.value) mancanti.push(libro.categoria);
+  if (mancanti.length) {
+    mancanti.forEach(c => c.setAttribute("aria-invalid", "true"));
+    esito.className = "esito errore"; esito.textContent = "Servono almeno il titolo e lo scaffale.";
+    mancanti[0].focus();
+    return;
+  }
+  const dati = { azione: "aggiungiLibro", password: PASSWORD, forza: !!forza };
+  for (const k of ["isbn", "titolo", "autori", "editore", "anno", "categoria", "trama", "copertina"]) dati[k] = libro[k].value.trim();
+  if (dati.copertina.includes("default=false")) dati.copertina = dati.copertina.replace(/[?&]default=false/, "");   // l'immagine è stata verificata nell'anteprima
+
+  const fine = inAttesa(libro.querySelector('[type="submit"]'), "Salvo…", esito);
+  const r = await invia(dati);
+  fine();
+
+  if (r.ok) {
+    $("#lista-aggiunti").insertAdjacentHTML("afterbegin", `<li><span>${esc(r.id)}</span>${esc(dati.titolo)}</li>`);
+    $("#aggiunti").hidden = false;
+    svuotaLibro();
+    $("#isbn").value = "";
+    $("#esito-isbn").className = "esito ok";
+    $("#esito-isbn").textContent = `«${dati.titolo}» salvato nel catalogo (${r.id}). Puoi inserire il prossimo.`;
+    $("#isbn").focus();
+    scrollTo({ top: 0, behavior: "smooth" });
+  } else if (r.duplicato) {
+    esito.className = "esito errore";
+    esito.innerHTML = `${esc(r.errore)}<br><button class="bottone chiaro piccolo" type="button" id="forza">Aggiungilo comunque</button>`;
+    $("#forza").addEventListener("click", () => salva(true));
+  } else {
+    esito.className = "esito errore"; esito.textContent = r.errore || "Salvataggio non riuscito: riprova.";
+    if (/password/i.test(r.errore || "")) $("#esci").click();
+  }
+}
+libro.addEventListener("submit", e => { e.preventDefault(); salva(false); });
+
+/* ---------- avvio: se la password è già stata data in questa scheda del browser, si entra direttamente ---------- */
+let salvata = "";
+try { salvata = sessionStorage.getItem(CHIAVE_PW) || ""; } catch {}
+if (salvata) entra(salvata, true); else accesso.password.focus();
+</script>
+</body>
+</html>

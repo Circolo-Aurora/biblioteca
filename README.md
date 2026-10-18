@@ -2,7 +2,9 @@
 
 Catalogo online della biblioteca del circolo Arci Aurora: consultazione pubblica dei libri, richiesta di prestito, inserimento dei libri da parte della bibliotecaria.
 
-URL previsto: `https://circoloaurora.github.io/biblioteca`
+Sito: `https://circolo-aurora.github.io/biblioteca/` · area riservata: `https://circolo-aurora.github.io/biblioteca/admin.html`
+
+Repository: `Circolo-Aurora/biblioteca` · backend: web app Apps Script dell'account della sagra (URL in `API_URL` di `index.html` e `admin.html`).
 
 ---
 
@@ -16,7 +18,7 @@ GitHub Pages (frontend statico)  ──fetch──>  Apps Script (web app)  ─�
         └──fetch──> Google Books / Open Library  (lookup ISBN, direttamente dal browser)
 ```
 
-- **Frontend**: HTML/CSS/JS senza framework, pubblicato con GitHub Pages dall'organizzazione `circoloaurora`, repo `biblioteca`.
+- **Frontend**: HTML/CSS/JS senza framework, pubblicato con GitHub Pages dall'organizzazione `Circolo-Aurora`, repo `biblioteca`.
 - **Backend**: un progetto Apps Script collegato al Google Sheet, pubblicato come web app ("esegui come: me", "accesso: chiunque"). Account proprietario: quello della Sagra di Penco.
 - **Dati**: un Google Sheet, modificabile anche a mano.
 - **Lookup ISBN**: fatto dal browser direttamente su Google Books e Open Library (entrambe accettano chiamate cross-origin), quindi Apps Script riceve solo il libro già compilato.
@@ -26,7 +28,7 @@ GitHub Pages (frontend statico)  ──fetch──>  Apps Script (web app)  ─�
 ```
 biblioteca/
 ├── index.html              catalogo pubblico (CSS e JS dentro il file)
-├── admin.html              area riservata (inserimento libri)
+├── admin.html              area riservata: login, ricerca ISBN, inserimento libri
 ├── assets/
 │   ├── logo-aurora.png
 │   └── icona-biblioteca.png
@@ -131,11 +133,11 @@ Nelle fasi 1–2 questi passaggi si fanno a mano nel foglio. Nella fase 3, un tr
 ## Fasi
 
 ### Fase 1 — Catalogo e inserimento
-- [ ] Creare l'organizzazione GitHub `circoloaurora` e il repo `biblioteca`, attivare Pages
-- [ ] Creare il Google Sheet con i fogli e le intestazioni sopra
-- [x] Apps Script: `setup`, `catalogo`, `login`, `aggiungiLibro`, `Log` (da provare sul foglio vero)
+- [x] Creare l'organizzazione GitHub `Circolo-Aurora` e il repo `biblioteca`, attivare Pages
+- [x] Creare il Google Sheet con i fogli e le intestazioni sopra
+- [x] Apps Script: `setup`, `catalogo`, `login`, `aggiungiLibro`, `Log`
 - [x] `index.html`: catalogo, ricerca, filtri, scheda libro con scaffale, form richiesta (in anteprima)
-- [ ] `admin.html`: login, lookup ISBN, inserimento
+- [x] `admin.html`: login, lookup ISBN (Google Books + Open Library in parallelo), inserimento, avviso doppioni
 - [ ] Inserire i primi libri (l'export di My Library ha 4 titoli: si ricaricano dall'area riservata)
 
 ### Fase 2 — Richiesta di prestito
@@ -157,7 +159,6 @@ Nelle fasi 1–2 questi passaggi si fanno a mano nel foglio. Nella fase 3, un tr
 - Logo del circolo (file vettoriale se disponibile)
 - Testo con orari e modalità di ritiro per la mail di conferma
 - Indirizzo email della bibliotecaria per le notifiche
-- Nome dell'organizzazione GitHub (verificare che `circoloaurora` sia libero)
 
 ## Setup
 
