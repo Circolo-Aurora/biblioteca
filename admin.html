@@ -73,7 +73,9 @@ form{display:grid;gap:12px}
 
 /* scanner a tutto schermo */
 .scanner{position:fixed;inset:0;z-index:50;background:#000;display:grid}
-.scanner video{width:100%;height:100%;object-fit:cover;grid-area:1/1}
+.scanner video{width:100%;height:100%;object-fit:cover;grid-area:1/1;position:relative;z-index:0}
+.scanner .mirino{position:relative;z-index:1;pointer-events:none}
+.scanner .scanner-giu{position:relative;z-index:2}
 .mirino{grid-area:1/1;place-self:center;width:min(82vw,420px);aspect-ratio:2/1;border:3px solid #fff;border-radius:12px;
   box-shadow:0 0 0 100vmax rgba(0,0,0,.45)}
 .scanner-giu{grid-area:1/1;align-self:end;display:grid;justify-items:center;gap:12px;padding:20px 16px calc(24px + env(safe-area-inset-bottom));color:#fff;text-align:center}
@@ -111,8 +113,26 @@ form{display:grid;gap:12px}
 
 .piede{padding:16px 0 30px;font-size:.92rem}
 .piede a{color:var(--inchiostro)}
-.piede-righe{display:grid;gap:10px;justify-items:start}
-.nota-ios{margin:0;color:var(--grigio);font-size:.9rem}
+.nascosto{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden}
+.spunta{display:flex;align-items:center;gap:8px;color:var(--inchiostro);font-size:.95rem;cursor:pointer}
+.spunta input{width:20px;height:20px;accent-color:var(--inchiostro);margin:0}
+
+.installa-box{display:grid;grid-template-columns:52px 1fr;gap:12px;align-items:center;margin:0 0 16px;padding:12px 14px;
+  background:var(--pagina);border:1.5px dashed var(--inchiostro);border-radius:12px}
+.installa-box img{width:52px;height:52px;border-radius:50%}
+.installa-box p{margin:0 0 6px;font-size:.95rem}
+.installa-azioni{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+
+.foto-righe{display:flex;align-items:center;gap:6px 14px;flex-wrap:wrap}
+.foto-righe .bottone{display:inline-flex;align-items:center;gap:8px}
+.foto-righe svg{width:20px;height:20px}
+.scegli{display:inline;position:relative;color:var(--inchiostro);text-decoration:underline;cursor:pointer;font-size:.92rem}
+
+.mirino-copertina{width:auto;height:min(56vh,96vw);aspect-ratio:2/3;transform:translateY(-5vh)}
+.foto-bottoni{display:flex;align-items:center;gap:30px}
+.scatta{width:74px;height:74px;border-radius:50%;border:5px solid #fff;background:rgba(255,255,255,.3);cursor:pointer;padding:0}
+.scatta:active{background:#fff}
+.scatta[disabled]{opacity:.4}
 </style>
 </head>
 <body>
@@ -129,12 +149,26 @@ form{display:grid;gap:12px}
 
 <main class="contenitore">
 
+  <!-- invito a installare l'app "Gestione libri" -->
+  <div class="installa-box" id="installa-box" hidden>
+    <img src="assets/icone/gestione-192.png" alt="">
+    <div>
+      <p id="installa-testo">Puoi avere questa pagina come app sul telefono, con la sua icona.</p>
+      <div class="installa-azioni">
+        <button class="bottone piccolo" type="button" id="installa" hidden>Installa “Gestione libri”</button>
+        <button class="link" type="button" id="installa-chiudi">Non ora</button>
+      </div>
+    </div>
+  </div>
+
   <!-- accesso -->
   <section class="pannello" id="accesso">
     <h2>Area riservata</h2>
     <p class="sotto">Per aggiungere libri al catalogo.</p>
     <form id="form-accesso" novalidate>
+      <input class="nascosto" type="text" name="utente" value="biblioteca" autocomplete="username" tabindex="-1" aria-hidden="true">
       <label>Password<input type="password" name="password" autocomplete="current-password" enterkeyhint="go"></label>
+      <label class="spunta"><input type="checkbox" name="ricorda" checked> Resta collegato su questo telefono</label>
       <p class="esito" id="esito-accesso" aria-live="polite"></p>
       <div><button class="bottone" type="submit">Entra</button></div>
     </form>
@@ -172,6 +206,13 @@ form{display:grid;gap:12px}
           <label>Autori<input name="autori" autocomplete="off" placeholder="Separati da virgola"></label>
         </div>
       </div>
+      <div class="foto-righe">
+        <button class="bottone chiaro piccolo" type="button" id="fotografa" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+          Fotografa la copertina
+        </button>
+        <label class="scegli">oppure scegli una foto<input type="file" id="scegli-foto" accept="image/*" class="nascosto"></label>
+      </div>
       <div class="due">
         <label>Editore<input name="editore" autocomplete="off"></label>
         <label>Anno<input name="anno" inputmode="numeric" maxlength="4" autocomplete="off"></label>
@@ -203,11 +244,20 @@ form{display:grid;gap:12px}
   </div>
 </div>
 
-<footer class="piede"><div class="contenitore piede-righe">
-  <a href="./">Torna al catalogo</a>
-  <button class="bottone chiaro piccolo" type="button" id="installa" hidden>Installa “Gestione libri” sul telefono</button>
-  <p class="nota-ios" id="nota-ios" hidden>Per averla come app su iPhone: in Safari tocca Condividi, poi “Aggiungi alla schermata Home”.</p>
-</div></footer>
+<!-- fotocamera per la copertina -->
+<div class="scanner" id="foto" hidden role="dialog" aria-label="Foto della copertina">
+  <video id="video-foto" playsinline muted></video>
+  <div class="mirino mirino-copertina" id="mirino-copertina" aria-hidden="true"></div>
+  <div class="scanner-giu">
+    <p id="foto-testo">Avvio la fotocamera…</p>
+    <div class="foto-bottoni">
+      <button class="bottone chiaro" type="button" id="foto-annulla">Annulla</button>
+      <button class="scatta" type="button" id="foto-scatta" aria-label="Scatta la foto" disabled></button>
+    </div>
+  </div>
+</div>
+
+<footer class="piede"><div class="contenitore"><a href="./">Torna al catalogo</a></div></footer>
 
 <script>
 /* ================= IMPOSTAZIONI ================= */
@@ -225,6 +275,16 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
 const CHIAVE_PW = "biblioteca-aurora-pw";
 let PASSWORD = "";
+let fotoLocale = "";      // foto della copertina appena scattata (anteprima immediata)
+let caricamento = null;   // caricamento della foto su Drive in corso
+// password ricordata: nel telefono (localStorage) se "Resta collegato", altrimenti solo finché resta aperta la scheda
+const memoria = {
+  leggi() { try { return localStorage.getItem(CHIAVE_PW) || sessionStorage.getItem(CHIAVE_PW) || ""; } catch { return ""; } },
+  salva(pw, ricorda) {
+    try { (ricorda ? localStorage : sessionStorage).setItem(CHIAVE_PW, pw); (ricorda ? sessionStorage : localStorage).removeItem(CHIAVE_PW); } catch {}
+  },
+  cancella() { try { localStorage.removeItem(CHIAVE_PW); sessionStorage.removeItem(CHIAVE_PW); } catch {} }
+};
 
 function colore(cat) {
   if (COLORI_SCAFFALE[cat]) return COLORI_SCAFFALE[cat];
@@ -232,7 +292,10 @@ function colore(cat) {
   return COLORI_RISERVA[h % COLORI_RISERVA.length];
 }
 document.addEventListener("error", e => {
-  if (e.target.matches?.("#anteprima img")) { e.target.remove(); libro.copertina.value = ""; $("#togli-copertina").hidden = true; }
+  if (!e.target.matches?.("#anteprima img")) return;
+  if (e.target.getAttribute("src") === libro.copertina.value) libro.copertina.value = "";
+  e.target.remove();
+  $("#togli-copertina").hidden = !(fotoLocale || libro.copertina.value);
 }, true);
 
 /* ---------- invio ad Apps Script (stesso schema del catalogo) ---------- */
@@ -271,13 +334,13 @@ async function entra(password, silenzioso) {
   const r = await invia({ azione: "login", password });
   fine();
   if (!r.ok) {
-    try { sessionStorage.removeItem(CHIAVE_PW); } catch {}
+    memoria.cancella();
     esito.className = "esito errore"; esito.textContent = r.errore || "Accesso non riuscito.";
     accesso.password.focus();
     return;
   }
   PASSWORD = password;
-  try { sessionStorage.setItem(CHIAVE_PW, password); } catch {}
+  if (!silenzioso) memoria.salva(password, accesso.ricorda.checked);
   const sel = libro.categoria;
   sel.innerHTML = `<option value="">Scegli lo scaffale…</option>` + (r.categorie || []).map(c => `<option>${esc(c)}</option>`).join("");
   $("#accesso").hidden = true;
@@ -297,7 +360,7 @@ accesso.addEventListener("submit", e => {
 
 $("#esci").addEventListener("click", () => {
   PASSWORD = "";
-  try { sessionStorage.removeItem(CHIAVE_PW); } catch {}
+  memoria.cancella();
   accesso.reset();
   $("#inserimento").hidden = true; $("#aggiunti").hidden = true; $("#accesso").hidden = false;
   accesso.password.focus();
@@ -323,9 +386,12 @@ const testoPulito = s => String(s || "")
   .replace(/\s+/g, " ").replace(/\s+([.,;:!?])/g, "$1").trim();
 
 async function daGoogleBooks(isbn) {
-  const r = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&maxResults=1`);
-  if (!r.ok) throw new Error("Google Books " + r.status);
-  const v = (await r.json()).items?.[0]?.volumeInfo;
+  const chiedi = async q => {
+    const r = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=1`);
+    if (!r.ok) throw new Error("Google Books " + r.status);
+    return (await r.json()).items?.[0]?.volumeInfo;
+  };
+  const v = (await chiedi("isbn:" + isbn)) || (await chiedi(isbn));   // alcune edizioni si trovano solo così
   if (!v) return null;
   const img = v.imageLinks?.thumbnail || v.imageLinks?.smallThumbnail || "";
   return {
@@ -351,6 +417,37 @@ async function daOpenLibrary(isbn) {
     trama: "",
     copertina: b.cover?.medium || b.cover?.large || ""
   };
+}
+
+// Copertine: prima quelle date dalle fonti, poi Open Library e Amazon per ISBN.
+// Ogni immagine viene caricata e controllata (quelle mancanti tornano vuote o di 1 pixel).
+const COPERTINE_AMAZON = true;   // immagini pubbliche di Amazon per ISBN: non è un servizio ufficiale, si può spegnere
+let giroCopertina = 0;
+function isbn10(i13) {
+  if (!/^978\d{10}$/.test(i13)) return "";
+  const b = i13.slice(3, 12);
+  const k = (11 - b.split("").reduce((t, c, i) => t + Number(c) * (10 - i), 0) % 11) % 11;
+  return b + (k === 10 ? "X" : String(k));
+}
+function candidatiCopertina(isbn, dalleFonti) {
+  const l = dalleFonti.filter(Boolean);
+  l.push(`https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg?default=false`);
+  const i10 = isbn10(isbn);
+  if (COPERTINE_AMAZON && i10) l.push(`https://images-na.ssl-images-amazon.com/images/P/${i10}.01.L.jpg`);
+  return [...new Set(l)];
+}
+function immagineValida(url, ms = 7000) {
+  return new Promise(ok => {
+    const im = new Image();
+    const t = setTimeout(() => { im.src = ""; ok(false); }, ms);
+    im.onload = () => { clearTimeout(t); ok(im.naturalWidth >= 40 && im.naturalHeight >= 40); };
+    im.onerror = () => { clearTimeout(t); ok(false); };
+    im.src = url;
+  });
+}
+async function primaImmagine(urls) {
+  for (const u of urls) if (await immagineValida(u)) return u;
+  return "";
 }
 
 // Catalogo nazionale SBN, tramite Apps Script (il servizio non accetta chiamate dirette dal browser)
@@ -395,11 +492,17 @@ formIsbn.addEventListener("submit", async e => {
       : "Nessun risultato per questo ISBN: compila la scheda a mano, l'ISBN resta salvato.";
     libro.titolo.focus();
   } else {
-    for (const k of ["titolo", "autori", "editore", "anno", "trama", "copertina"]) libro[k].value = trovate.map(f => f.dati[k]).find(Boolean) || "";
-    if (!libro.copertina.value) libro.copertina.value = `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg?default=false`;
+    for (const k of ["titolo", "autori", "editore", "anno", "trama"]) libro[k].value = trovate.map(f => f.dati[k]).find(Boolean) || "";
+    const dove = `Trovato su ${trovate.map(f => f.nome).join(", ").replace(/, ([^,]*)$/, " e $1")}.`;
     esito.className = "esito ok";
-    esito.textContent = `Trovato su ${trovate.map(f => f.nome).join(", ").replace(/, ([^,]*)$/, " e $1")}. Controlla i dati e scegli lo scaffale.`;
+    esito.textContent = dove + " Cerco la copertina…";
     libro.categoria.focus();
+    disegnaAnteprima();
+    const giro = ++giroCopertina;
+    const cop = await primaImmagine(candidatiCopertina(isbn, trovate.map(f => f.dati.copertina)));
+    if (giro !== giroCopertina) return;   // nel frattempo è partita un'altra ricerca o una foto
+    libro.copertina.value = cop;
+    esito.textContent = dove + (cop ? " Controlla i dati e scegli lo scaffale." : " Copertina non trovata: puoi fotografarla.");
   }
   disegnaAnteprima();
 });
@@ -485,11 +588,110 @@ $("#scanner-chiudi").addEventListener("click", () => { chiudiScanner(); $("#isbn
 document.addEventListener("keydown", e => { if (e.key === "Escape" && scannerAperto) chiudiScanner(); });
 document.addEventListener("visibilitychange", () => { if (document.hidden && scannerAperto) chiudiScanner(); });
 
+/* ---------- foto della copertina ----------
+   Fotocamera con riquadro 2:3: si ritaglia solo la parte nel riquadro (600×900 px, JPEG),
+   si mostra subito e si carica su Drive tramite Apps Script; al salvataggio va l'indirizzo della foto. */
+const videoFoto = $("#video-foto");
+let flussoFoto = null;
+
+async function apriFoto() {
+  $("#foto").hidden = false;
+  $("#foto-scatta").disabled = true;
+  $("#foto-testo").textContent = "Avvio la fotocamera…";
+  try {
+    flussoFoto = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
+    if ($("#foto").hidden) return chiudiFoto();
+    videoFoto.srcObject = flussoFoto;
+    await videoFoto.play();
+    $("#foto-testo").textContent = "Inquadra la copertina nel riquadro e scatta";
+    $("#foto-scatta").disabled = false;
+  } catch (err) {
+    chiudiFoto();
+    const esito = $("#esito-libro");
+    esito.className = "esito errore";
+    esito.textContent = err && err.name === "NotAllowedError"
+      ? "La fotocamera non ha il permesso: consentila nelle impostazioni del browser, oppure scegli una foto."
+      : "Fotocamera non disponibile: puoi scegliere una foto dalla galleria.";
+  }
+}
+function chiudiFoto() {
+  if (flussoFoto) flussoFoto.getTracks().forEach(t => t.stop());
+  flussoFoto = null; videoFoto.srcObject = null;
+  $("#foto").hidden = true;
+}
+// ritaglia la parte di video che sta nel riquadro (il video è mostrato con object-fit: cover)
+function scatta() {
+  const v = videoFoto.getBoundingClientRect(), m = $("#mirino-copertina").getBoundingClientRect();
+  const iw = videoFoto.videoWidth, ih = videoFoto.videoHeight;
+  const scala = Math.max(v.width / iw, v.height / ih);
+  const dx = (v.width - iw * scala) / 2, dy = (v.height - ih * scala) / 2;
+  let sx = (m.left - v.left - dx) / scala, sy = (m.top - v.top - dy) / scala;
+  let sw = m.width / scala, sh = m.height / scala;
+  sx = Math.max(0, sx); sy = Math.max(0, sy); sw = Math.min(sw, iw - sx); sh = Math.min(sh, ih - sy);
+  return disegnaRitaglio(videoFoto, sx, sy, sw, sh);
+}
+function disegnaRitaglio(sorgente, sx, sy, sw, sh) {
+  const W = 600, H = Math.round(W * sh / sw);
+  const c = document.createElement("canvas"); c.width = W; c.height = H;
+  c.getContext("2d").drawImage(sorgente, sx, sy, sw, sh, 0, 0, W, H);
+  return c.toDataURL("image/jpeg", 0.82);
+}
+// foto scelta dalla galleria: si ritaglia al centro in proporzione 2:3
+function daFile(file) {
+  return new Promise((ok, no) => {
+    const url = URL.createObjectURL(file), im = new Image();
+    im.onload = () => {
+      const w = im.naturalWidth, h = im.naturalHeight;
+      let sw = w, sh = w * 1.5;
+      if (sh > h) { sh = h; sw = h / 1.5; }
+      URL.revokeObjectURL(url);
+      ok(disegnaRitaglio(im, (w - sw) / 2, (h - sh) / 2, sw, sh));
+    };
+    im.onerror = () => { URL.revokeObjectURL(url); no(new Error("immagine")); };
+    im.src = url;
+  });
+}
+function usaFoto(dataUrl) {
+  giroCopertina++;                 // ferma l'eventuale ricerca automatica della copertina
+  fotoLocale = dataUrl;
+  libro.copertina.value = "";
+  disegnaAnteprima();
+  const esito = $("#esito-libro");
+  esito.className = "esito"; esito.textContent = "Carico la foto…";
+  const questo = caricamento = invia({ azione: "caricaCopertina", password: PASSWORD, immagine: dataUrl, isbn: libro.isbn.value, titolo: libro.titolo.value })
+    .then(r => {
+      if (caricamento !== questo) return;       // nel frattempo la foto è stata tolta o sostituita
+      caricamento = null;
+      if (r.ok) { libro.copertina.value = r.url; esito.className = "esito ok"; esito.textContent = "Foto caricata."; }
+      else { fotoLocale = ""; disegnaAnteprima(); esito.className = "esito errore"; esito.textContent = r.errore || "Foto non caricata: riprova."; }
+    });
+}
+
+if (navigator.mediaDevices?.getUserMedia && window.isSecureContext) {
+  $("#fotografa").hidden = false;
+  $("#fotografa").addEventListener("click", apriFoto);
+}
+$("#foto-annulla").addEventListener("click", chiudiFoto);
+$("#foto-scatta").addEventListener("click", () => {
+  if (!videoFoto.videoWidth) return;
+  const dataUrl = scatta();
+  navigator.vibrate?.(30);
+  chiudiFoto();
+  usaFoto(dataUrl);
+});
+$("#scegli-foto").addEventListener("change", async e => {
+  const f = e.target.files?.[0]; e.target.value = "";
+  if (!f) return;
+  try { usaFoto(await daFile(f)); }
+  catch { $("#esito-libro").className = "esito errore"; $("#esito-libro").textContent = "Questa immagine non si apre: prova con un'altra."; }
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#foto").hidden) chiudiFoto(); });
+
 /* ---------- scheda del libro ---------- */
 const libro = $("#form-libro");
 
 function disegnaAnteprima() {
-  const t = libro.titolo.value.trim() || "Titolo", a = libro.autori.value.trim(), img = libro.copertina.value;
+  const t = libro.titolo.value.trim() || "Titolo", a = libro.autori.value.trim(), img = fotoLocale || libro.copertina.value;
   $("#anteprima").innerHTML = `<div class="copertina" style="--c:${colore(libro.categoria.value)}">
     <span class="t">${esc(t)}</span><span class="a">${esc(a)}</span>
     ${img ? `<img src="${esc(img)}" alt="Copertina">` : ""}</div>`;
@@ -498,9 +700,12 @@ function disegnaAnteprima() {
 ["titolo", "autori"].forEach(n => libro[n].addEventListener("input", disegnaAnteprima));
 libro.categoria.addEventListener("change", disegnaAnteprima);
 libro.addEventListener("input", e => e.target.removeAttribute?.("aria-invalid"));
-$("#togli-copertina").addEventListener("click", () => { libro.copertina.value = ""; disegnaAnteprima(); });
+$("#togli-copertina").addEventListener("click", () => {
+  giroCopertina++; caricamento = null; fotoLocale = ""; libro.copertina.value = ""; disegnaAnteprima();
+});
 
 function svuotaLibro() {
+  giroCopertina++; caricamento = null; fotoLocale = "";
   libro.reset();
   libro.querySelectorAll("[aria-invalid]").forEach(x => x.removeAttribute("aria-invalid"));
   $("#esito-libro").textContent = "";
@@ -522,8 +727,15 @@ async function salva(forza) {
     mancanti[0].focus();
     return;
   }
+  if (caricamento) {
+    const b = libro.querySelector('[type="submit"]');
+    b.disabled = true; b.textContent = "Carico la foto…";
+    try { await caricamento; } catch {}
+    b.disabled = false; b.textContent = "Salva nel catalogo";
+  }
   const dati = { azione: "aggiungiLibro", password: PASSWORD, forza: !!forza };
   for (const k of ["isbn", "titolo", "autori", "editore", "anno", "categoria", "trama", "copertina"]) dati[k] = libro[k].value.trim();
+  if (dati.copertina.startsWith("data:")) dati.copertina = "";
   if (dati.copertina.includes("default=false")) dati.copertina = dati.copertina.replace(/[?&]default=false/, "");   // l'immagine è stata verificata nell'anteprima
 
   const fine = inAttesa(libro.querySelector('[type="submit"]'), "Salvo…", esito);
@@ -552,21 +764,38 @@ libro.addEventListener("submit", e => { e.preventDefault(); salva(false); });
 
 /* ---------- app installabile ("Gestione libri") ---------- */
 if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+// Riquadro in cima alla pagina: su Android/computer con il pulsante "Installa", su iPhone con le istruzioni.
+// Non compare se la pagina è già aperta come app o se è stato chiuso con "Non ora".
 let invitoInstalla = null;
-addEventListener("beforeinstallprompt", e => { e.preventDefault(); invitoInstalla = e; $("#installa").hidden = false; });
-addEventListener("appinstalled", () => { invitoInstalla = null; $("#installa").hidden = true; });
+const comeApp = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+let invitoChiuso = false;
+try { invitoChiuso = localStorage.getItem("biblioteca-invito-chiuso") === "1"; } catch {}
+function mostraInvito(testo, conBottone) {
+  if (comeApp || invitoChiuso) return;
+  $("#installa-testo").textContent = testo;
+  $("#installa").hidden = !conBottone;
+  $("#installa-box").hidden = false;
+}
+addEventListener("beforeinstallprompt", e => {
+  e.preventDefault(); invitoInstalla = e;
+  mostraInvito("Puoi avere questa pagina come app sul telefono: icona “Gestione libri”, si apre direttamente qui.", true);
+});
+addEventListener("appinstalled", () => { invitoInstalla = null; $("#installa-box").hidden = true; });
 $("#installa").addEventListener("click", async () => {
   if (!invitoInstalla) return;
   invitoInstalla.prompt();
   await invitoInstalla.userChoice;
-  invitoInstalla = null; $("#installa").hidden = true;
+  invitoInstalla = null; $("#installa-box").hidden = true;
+});
+$("#installa-chiudi").addEventListener("click", () => {
+  $("#installa-box").hidden = true;
+  try { localStorage.setItem("biblioteca-invito-chiuso", "1"); } catch {}
 });
 const suIphone = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-if (suIphone && !navigator.standalone) $("#nota-ios").hidden = false;
+if (suIphone) mostraInvito("Per averla come app su iPhone: apri questa pagina in Safari, tocca Condividi (il quadrato con la freccia) e poi «Aggiungi alla schermata Home».", false);
 
 /* ---------- avvio: se la password è già stata data in questa scheda del browser, si entra direttamente ---------- */
-let salvata = "";
-try { salvata = sessionStorage.getItem(CHIAVE_PW) || ""; } catch {}
+const salvata = memoria.leggi();
 if (salvata) entra(salvata, true); else accesso.password.focus();
 </script>
 </body>

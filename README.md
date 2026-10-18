@@ -21,7 +21,7 @@ GitHub Pages (frontend statico)  ──fetch──>  Apps Script (web app)  ─�
 - **Frontend**: HTML/CSS/JS senza framework, pubblicato con GitHub Pages dall'organizzazione `Circolo-Aurora`, repo `biblioteca`.
 - **Backend**: un progetto Apps Script collegato al Google Sheet, pubblicato come web app ("esegui come: me", "accesso: chiunque"). Account proprietario: quello della Sagra di Penco.
 - **Dati**: un Google Sheet, modificabile anche a mano.
-- **Lookup ISBN**: tre fonti in parallelo. Google Books e Open Library direttamente dal browser; il catalogo nazionale SBN (opac.sbn.it, servizio non documentato) tramite Apps Script, perché non accetta chiamate dal browser. Per ogni campo vale la prima fonte che lo ha (Google Books → SBN → Open Library); le copertine arrivano solo da Google Books e Open Library.
+- **Lookup ISBN**: tre fonti in parallelo. Google Books e Open Library direttamente dal browser; il catalogo nazionale SBN (opac.sbn.it, servizio non documentato) tramite Apps Script, perché non accetta chiamate dal browser. Per ogni campo vale la prima fonte che lo ha (Google Books → SBN → Open Library); le copertine si provano in ordine (Google Books, Open Library, Amazon per ISBN-10) e vale la prima che si carica davvero. Amazon non è un servizio ufficiale: si spegne con `COPERTINE_AMAZON = false` in `admin.html`. Se non si trova niente, la copertina si fotografa (riquadro 2:3) o si sceglie dalla galleria e va su Drive.
 
 ## Struttura del repo
 
@@ -94,6 +94,7 @@ Elenco delle categorie/scaffali (usato per la convalida e restituito al frontend
 | chiamata | metodo | input | output |
 |---|---|---|---|
 | `?azione=catalogo` | GET | — | `{ libri: [...], categorie: [...] }` (solo campi pubblici) |
+| `caricaCopertina` | POST | `password, immagine` (JPEG in base64, già ritagliato 600×900), `isbn`, `titolo` | file nella cartella Drive "Biblioteca Circolo Aurora – copertine" condiviso con chi ha il link; restituisce l'indirizzo dell'immagine |
 | `?azione=isbn&isbn=…` | GET | — | ricerca nel catalogo nazionale SBN (titolo, autori, editore, anno), in cache 6 ore |
 | `?azione=esito&rid=…` | GET | — | la risposta di un POST già inviato (se quella diretta si è persa) |
 | `richiesta` | POST | `id_libro, nome, email, telefono` | riga in Prestiti (`P0001`…), libro → `prenotato`, mail alla bibliotecaria (rispondendo si scrive al richiedente) e conferma al richiedente; se il libro non è più disponibile `{ok:false, stato}` |
@@ -103,7 +104,7 @@ Elenco delle categorie/scaffali (usato per la convalida e restituito al frontend
 
 Note tecniche:
 - I POST si inviano come testo (JSON senza `Content-Type: application/json`), per evitare il preflight CORS che Apps Script non gestisce. Ogni POST ha un codice `rid`: la risposta resta in cache 6 ore e la pagina la può richiedere con `esito` (stesso schema delle prenotazioni della sagra).
-- La password è salvata nelle **Proprietà dello script** (`ADMIN_PASSWORD`), mai nel repo. Il frontend la tiene in `sessionStorage` per la durata della sessione e la invia a ogni chiamata riservata.
+- La password è salvata nelle **Proprietà dello script** (`ADMIN_PASSWORD`), mai nel repo. Con "Resta collegato" l'area riservata la ricorda nel telefono (`localStorage`), altrimenti solo finché resta aperta la scheda; "Esci" la cancella. Il modulo è fatto in modo che anche il gestore di password del browser possa salvarla.
 - Il catalogo è in cache lato script (10 minuti, diviso in pezzi per il limite di 100 KB) e si svuota a ogni inserimento e a ogni modifica a mano del foglio (`onEdit`).
 - Lato pagina, l'ultima copia del catalogo resta nel browser: alla riapertura i libri compaiono subito e si aggiornano quando risponde Apps Script.
 - Il tab Libri si legge per nome di colonna: l'ordine delle colonne si può cambiare, i nomi no.

@@ -6,8 +6,11 @@
  *
  * Ricerca ISBN: il sito interroga Google Books e Open Library; il catalogo nazionale SBN passa da qui (azione "isbn").
  *
- * DOPO AVER INCOLLATO UNA VERSIONE NUOVA: esegui una volta "provaMail" e "provaIsbn" dall'editor e concedi
- * i permessi (inviare email, collegarsi a siti esterni), poi pubblica la nuova versione (vedi sotto).
+ * Foto delle copertine: l'area riservata le carica qui (azione "caricaCopertina"); finiscono nella cartella Drive
+ * "Biblioteca Circolo Aurora – copertine", visibili a chi ha il link, e nel catalogo va il loro indirizzo.
+ *
+ * DOPO AVER INCOLLATO UNA VERSIONE NUOVA: esegui una volta "provaMail", "provaIsbn" e "provaDrive" dall'editor e
+ * concedi i permessi (email, siti esterni, Drive), poi pubblica la nuova versione (vedi sotto).
  *
  * GESTIONE DEI PRESTITI NEL FOGLIO (tab Prestiti, colonna "stato"):
  *   richiesto   → la riga la crea il sito; il libro risulta "prenotato"
@@ -108,6 +111,7 @@ function doPost(e) {
       case "login":         out = login_(d); break;
       case "aggiungiLibro": out = aggiungiLibro_(d); break;
       case "richiesta":     out = richiesta_(d); break;
+      case "caricaCopertina": out = caricaCopertina_(d); break;
       default: throw new Error("Azione non riconosciuta.");
     }
   } catch (err) {
@@ -362,6 +366,35 @@ function campiSbn_(rec) {
 // Prova dall'editor (e concede il permesso di collegarsi a siti esterni): cerca due ISBN su SBN.
 function provaIsbn() {
   ["9788845928987", "9788842092995"].forEach(i => console.log(i + " → " + JSON.stringify(cercaSbn_(i))));
+}
+
+// Foto della copertina scattata dall'area riservata (JPEG già ritagliato e ridotto dal browser).
+function caricaCopertina_(d) {
+  verificaPassword_(d.password);
+  const m = /^data:image\/(jpeg|png|webp);base64,(.+)$/.exec(String(d.immagine || ""));
+  if (!m) throw new Error("Immagine non valida.");
+  const byte = Utilities.base64Decode(m[2]);
+  if (byte.length > 3 * 1024 * 1024) throw new Error("Immagine troppo grande.");
+  const nome = (normalizzaIsbn_(d.isbn || "") || pulisci_(d.titolo, 60) || "copertina") + " " +
+    Utilities.formatDate(new Date(), FUSO, "yyyy-MM-dd HH.mm") + "." + (m[1] === "jpeg" ? "jpg" : m[1]);
+  const file = cartellaCopertine_().createFile(Utilities.newBlob(byte, "image/" + m[1], nome));
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  log_("copertina", file.getId(), nome);
+  return { ok: true, id: file.getId(), url: "https://drive.google.com/thumbnail?id=" + file.getId() + "&sz=w600" };
+}
+
+function cartellaCopertine_() {
+  const prop = PropertiesService.getScriptProperties();
+  const id = prop.getProperty("CARTELLA_COPERTINE");
+  if (id) { try { return DriveApp.getFolderById(id); } catch (err) {} }
+  const cartella = DriveApp.createFolder("Biblioteca Circolo Aurora – copertine");
+  prop.setProperty("CARTELLA_COPERTINE", cartella.getId());
+  return cartella;
+}
+
+// Da eseguire una volta dall'editor: concede il permesso di usare Drive e crea la cartella delle copertine.
+function provaDrive() {
+  console.log("Cartella delle copertine: " + cartellaCopertine_().getUrl());
 }
 
 // Da eseguire una volta dall'editor: concede il permesso di mandare mail e ne manda una di prova.
