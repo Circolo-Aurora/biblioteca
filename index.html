@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
+<title>Biblioteca del Circolo ARCI Aurora — Leccio</title>
+<meta name="description" content="Il catalogo della biblioteca del Circolo ARCI Aurora di Leccio: cerca un libro e chiedilo in prestito.">
+<link rel="icon" href="assets/logo-aurora.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Patrick+Hand&display=swap" rel="stylesheet">
+<style>
+:root{
+  --rosa:#f3e5e3;        /* carta del materiale della biblioteca */
+  --rosa-scuro:#e8d3d0;
+  --pagina:#fffaf8;      /* bianco delle schede */
+  --inchiostro:#2e2624;  /* tratto del disegno */
+  --grigio:#6f6360;
+  --rosso:#df2f3a;       /* rosso del logo Aurora */
+  --verde:#2c7a55;
+  --ambra:#a86a12;
+  --mano:'Patrick Hand','Comic Neue',cursive;
+  --testo:'Atkinson Hyperlegible',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--rosa);color:var(--inchiostro);font:400 1rem/1.5 var(--testo)}
+img{max-width:100%;display:block}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--rosso);outline-offset:2px}
+.contenitore{max-width:1080px;margin:0 auto;padding:0 16px}
+
+/* ---------- barra in alto (resta ferma scorrendo) ---------- */
+.testata{position:sticky;top:0;z-index:10;background:var(--rosa);border-bottom:1.5px solid var(--rosa-scuro)}
+.marchio{display:flex;align-items:center;gap:12px;height:66px;color:inherit;text-decoration:none;width:max-content;max-width:100%}
+.marchio img{height:46px;width:auto;flex:none}
+.marchio .disegno{flex:0 1 auto;min-width:0;object-fit:contain;object-position:left center}
+.marchio h1{font:400 clamp(1.35rem,6vw,2.2rem)/1 var(--mano);margin:0;white-space:nowrap;letter-spacing:.01em}
+@media (min-width:760px){
+  .marchio{height:84px;gap:18px}
+  .marchio img{height:60px}
+}
+
+.intro{margin:18px 0 0;max-width:36em;font-size:1.05rem}
+
+/* ---------- ricerca e filtri ---------- */
+.ricerca{position:relative;margin:16px 0 14px;max-width:640px}
+.ricerca svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:22px;height:22px;stroke:var(--inchiostro)}
+.ricerca input{width:100%;padding:13px 44px 13px 46px;border:2px solid var(--inchiostro);border-radius:12px;background:var(--pagina);font-size:1.08rem}
+.ricerca input::placeholder{color:#8d817e}
+.ricerca input:focus-visible{outline:2px solid var(--inchiostro);outline-offset:2px}
+.ricerca input::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none;display:none}
+.ricerca .svuota{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:none;width:36px;height:36px;border-radius:8px;font-size:1.4rem;line-height:1;cursor:pointer;color:var(--grigio)}
+.ricerca .svuota[hidden]{display:none}
+
+.scaffali{display:flex;gap:8px;overflow-x:auto;padding:4px 16px 10px;margin:0 -16px;scrollbar-width:thin}
+.scaffali button{flex:none;border:1.5px solid var(--inchiostro);background:transparent;border-radius:8px;padding:3px 12px 4px;font:400 1.15rem/1.3 var(--mano);cursor:pointer;white-space:nowrap}
+.scaffali button[aria-pressed="true"]{background:var(--inchiostro);color:var(--pagina)}
+@media (min-width:760px){.scaffali{flex-wrap:wrap;overflow:visible;margin:0;padding:4px 0 10px}}
+
+.barra{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;padding:8px 0 14px;border-bottom:1.5px solid var(--rosa-scuro)}
+.interruttore{display:inline-flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+.interruttore input{appearance:none;width:40px;height:24px;border-radius:12px;background:var(--rosa-scuro);border:1.5px solid var(--inchiostro);position:relative;cursor:pointer;margin:0;transition:background .15s}
+.interruttore input::after{content:"";position:absolute;top:2px;left:2px;width:17px;height:17px;border-radius:50%;background:var(--pagina);border:1.5px solid var(--inchiostro);transition:transform .15s}
+.interruttore input:checked{background:var(--verde)}
+.interruttore input:checked::after{transform:translateX(16px)}
+.barra select{border:1.5px solid var(--inchiostro);border-radius:8px;background:var(--pagina);padding:4px 8px;margin-left:auto}
+.conteggio{flex-basis:100%;color:var(--grigio);font-size:.92rem}
+@media (min-width:760px){.barra select{margin-left:0}.conteggio{flex-basis:auto;margin-left:auto;font-size:1rem}}
+
+/* ---------- griglia dei libri: 3 colonne su telefono ---------- */
+.libri{list-style:none;margin:0;padding:20px 0 40px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px 12px}
+@media (min-width:600px){.libri{grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:28px 20px}}
+.libro{display:block;width:100%;text-align:left;background:none;border:0;padding:0;cursor:pointer}
+.libro .copertina{transition:transform .15s}
+.libro:hover .copertina{transform:translateY(-3px)}
+.libro h2{font:700 .86rem/1.25 var(--testo);margin:8px 0 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+@media (min-width:600px){.libro h2{font-size:.92rem}}
+
+/* copertina: immagine se c'è, altrimenti disegnata col colore dello scaffale.
+   Il testo si ridimensiona con la larghezza della copertina (unità cqi). */
+.copertina{position:relative;container-type:inline-size;aspect-ratio:2/3;border-radius:2px 5px 5px 2px;overflow:hidden;color:var(--inchiostro);
+  background:color-mix(in srgb,var(--c,#888) 16%,var(--pagina));border:1.5px solid var(--inchiostro);box-shadow:2px 3px 0 var(--rosa-scuro)}
+.copertina::before{content:"";position:absolute;inset:0 auto 0 0;width:11%;background:var(--c,#888);border-right:1.5px solid var(--inchiostro)}
+.copertina .t{position:absolute;left:20%;right:8%;top:10%;font:400 14.5cqi/1.05 var(--mano);overflow-wrap:break-word;hyphens:auto}
+.copertina .a{position:absolute;left:20%;right:8%;bottom:8%;font-size:8.5cqi;line-height:1.2;color:var(--grigio)}
+.copertina img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:var(--pagina)}
+/* libro non disponibile: copertina velata e fascia in basso */
+.copertina.occupato::after{content:"";position:absolute;inset:0;background:rgba(243,229,227,.55)}
+.copertina .fascia{position:absolute;z-index:1;left:0;right:0;bottom:0;background:var(--inchiostro);color:var(--pagina);font:700 .7rem/1 var(--testo);padding:6px 4px;text-align:center}
+
+.messaggio{padding:40px 0 60px;max-width:34em}
+.messaggio h2{font:400 1.8rem/1.1 var(--mano);margin:0 0 6px}
+.messaggio p{margin:0;color:var(--grigio)}
+
+/* ---------- scheda del libro ---------- */
+dialog{border:0;padding:0;background:var(--pagina);color:var(--inchiostro);width:min(680px,100%);max-height:92vh;max-height:92dvh;overflow:auto;overscroll-behavior:contain;
+  border-radius:16px;box-shadow:0 20px 60px rgba(46,38,36,.35)}
+dialog::backdrop{background:rgba(46,38,36,.45)}
+@media (max-width:640px){
+  dialog{margin:auto 0 0;max-width:100%;border-radius:16px 16px 0 0;max-height:94vh;max-height:94dvh}
+}
+@media (prefers-reduced-motion:no-preference){
+  dialog[open]{animation:entra .2s ease-out}
+  @keyframes entra{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+}
+.scheda{padding:20px 20px 26px;position:relative}
+.scheda:has(form.richiesta){padding-bottom:0}
+.chiudi{position:absolute;top:10px;right:10px;border:0;background:var(--rosa);width:40px;height:40px;border-radius:50%;font-size:1.5rem;line-height:1;cursor:pointer}
+.scheda-testa{display:grid;grid-template-columns:110px 1fr;gap:18px;align-items:start;padding-right:36px}
+@media (min-width:640px){.scheda-testa{grid-template-columns:150px 1fr}}
+.scheda h2{font:400 1.9rem/1.05 var(--mano);margin:2px 0 6px}
+.scheda .autori{margin:0 0 10px;font-size:1.05rem}
+.dati{margin:0;display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-size:.92rem}
+.dati dt{color:var(--grigio)}
+.dati dd{margin:0}
+.stato{display:inline-flex;align-items:center;gap:6px;margin-top:8px;font-size:.92rem}
+.stato::before{content:"";width:9px;height:9px;border-radius:50%;background:currentColor}
+.stato.disponibile{color:var(--verde)}
+.stato.prenotato{color:var(--ambra)}
+.stato.in-prestito{color:var(--grigio)}
+.trama{margin:18px 0 0;max-width:62ch}
+
+.dove{margin:22px 0 0;padding:14px 14px 16px;background:var(--rosa);border-radius:12px}
+.dove h3{font:400 1.45rem/1.1 var(--mano);margin:0 0 10px}
+.mappa{display:grid;grid-template-columns:repeat(2,1fr);gap:4px;border:2px solid var(--inchiostro);border-radius:4px;padding:4px;background:var(--pagina)}
+@media (min-width:640px){.mappa{grid-template-columns:repeat(4,1fr)}}
+.mappa span{padding:6px 6px 7px;font:400 .98rem/1.1 var(--mano);color:var(--grigio);border-bottom:2px solid var(--rosa-scuro);min-height:2.6em;display:flex;align-items:flex-end}
+.mappa span.qui{background:var(--rosso);color:#fff;border-color:var(--inchiostro);border-radius:3px}
+
+.prestito{margin-top:22px}
+.prestito > p{margin:0 0 12px;max-width:52ch}
+.bottone{display:inline-block;border:2px solid var(--inchiostro);background:var(--inchiostro);color:var(--pagina);border-radius:10px;padding:11px 20px;font-weight:700;cursor:pointer;text-decoration:none;text-align:center}
+.bottone.chiaro{background:transparent;color:var(--inchiostro)}
+.bottone[disabled]{opacity:.6;cursor:wait}
+
+/* form di richiesta: i bottoni restano attaccati in fondo alla scheda, anche con la tastiera aperta */
+form.richiesta{display:grid;gap:12px;scroll-margin-top:12px}
+form.richiesta h3{font:400 1.6rem/1.1 var(--mano);margin:0}
+form.richiesta .nota{margin:-6px 0 2px;color:var(--grigio);font-size:.95rem}
+form.richiesta label{display:grid;gap:4px;font-size:.92rem;color:var(--grigio);max-width:440px}
+form.richiesta input{border:1.5px solid var(--inchiostro);border-radius:8px;padding:10px 12px;background:#fff;color:var(--inchiostro);font-size:1rem}
+form.richiesta input:focus-visible{outline:2px solid var(--inchiostro);outline-offset:1px}
+form.richiesta input[aria-invalid="true"]{border-color:var(--rosso);box-shadow:inset 0 0 0 1px var(--rosso)}
+.esito{margin:0;font-size:.95rem}
+.esito:empty{display:none}
+.esito.errore{color:var(--rosso)}
+form.richiesta .azioni{position:sticky;bottom:0;z-index:2;display:flex;gap:10px;margin:2px -20px 0;padding:12px 20px calc(14px + env(safe-area-inset-bottom));
+  background:var(--pagina);border-top:1.5px solid var(--rosa-scuro)}
+form.richiesta .azioni [type="submit"]{flex:1;max-width:320px}
+.fatto{padding:14px;border:2px solid var(--verde);border-radius:12px}
+.fatto h3{font:400 1.5rem/1.1 var(--mano);margin:0 0 4px;color:var(--verde)}
+.fatto p{margin:0}
+
+/* ---------- lente flottante: compare quando la ricerca esce dallo schermo ---------- */
+.lente{position:fixed;z-index:20;right:18px;bottom:calc(20px + env(safe-area-inset-bottom));width:58px;height:58px;border-radius:50%;
+  display:grid;place-items:center;border:2px solid var(--inchiostro);background:#f7d5d1;cursor:pointer;
+  box-shadow:4px 5px 12px rgba(46,38,36,.32);opacity:0;transform:translateY(12px) scale(.9);pointer-events:none;transition:opacity .18s,transform .18s}
+.lente.visibile{opacity:1;transform:none;pointer-events:auto}
+.lente svg{width:26px;height:26px;stroke:var(--inchiostro)}
+.lente:active{transform:scale(.94)}
+@media (prefers-reduced-motion:reduce){.lente{transition:none}}
+@media (min-width:760px){.lente{right:28px;bottom:28px}}
+
+/* ---------- piede ---------- */
+.piede{border-top:1.5px solid var(--rosa-scuro);padding:22px 0 30px;font-size:.92rem;color:var(--grigio)}
+.piede .contenitore{display:flex;flex-wrap:wrap;gap:8px 24px;justify-content:space-between;align-items:center}
+.piede a{color:var(--inchiostro)}
+.avviso-demo{background:var(--inchiostro);color:var(--pagina);text-align:center;font-size:.85rem;padding:6px 16px}
+</style>
+</head>
+<body>
+
+<div class="avviso-demo" id="avviso-demo" hidden>Anteprima con libri di prova: il catalogo vero arriverà dal foglio Google.</div>
+
+<header class="testata">
+  <div class="contenitore">
+    <a class="marchio" href="./">
+      <img src="assets/logo-aurora.png" alt="Circolo ARCI Aurora Leccio">
+      <h1>Biblioteca del Circolo</h1>
+      <img class="disegno" src="assets/icona-biblioteca.png" alt="">
+    </a>
+  </div>
+</header>
+
+<main class="contenitore">
+  <p class="intro">Cerca un libro e chiedilo in prestito: lo ritiri nella biblioteca del Circolo e lo puoi tenere fino a due mesi.</p>
+
+  <div class="ricerca" role="search">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>
+    <input id="q" type="search" placeholder="Titolo, autore, editore…" aria-label="Cerca nel catalogo" autocomplete="off" enterkeyhint="search">
+    <button class="svuota" id="svuota" type="button" aria-label="Cancella la ricerca" hidden>×</button>
+  </div>
+
+  <nav class="scaffali" id="scaffali" aria-label="Scaffali"></nav>
+
+  <div class="barra">
+    <label class="interruttore"><input type="checkbox" id="disponibili"> Solo disponibili</label>
+    <select id="ordine" aria-label="Ordina">
+      <option value="recenti">Ultimi arrivati</option>
+      <option value="titolo">Per titolo</option>
+      <option value="autore">Per autore</option>
+    </select>
+    <span class="conteggio" id="conteggio" aria-live="polite"></span>
+  </div>
+
+  <ul class="libri" id="libri"></ul>
+  <div class="messaggio" id="messaggio" hidden></div>
+</main>
+
+<footer class="piede">
+  <div class="contenitore">
+    <span>Biblioteca del Circolo ARCI Aurora, Leccio (Reggello)</span>
+    <a href="admin.html">Area riservata</a>
+  </div>
+</footer>
+
+<button class="lente" id="lente" type="button" aria-label="Cerca un libro" tabindex="-1">
+  <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>
+</button>
+
+<dialog id="dialogo" aria-labelledby="scheda-titolo">
+  <div class="scheda" id="scheda"></div>
+</dialog>
+
+<script>
+/* ================= IMPOSTAZIONI ================= */
+const API_URL = "https://script.google.com/macros/s/AKfycby-9mfOH8GR7sk716ybS6NWo-8Q4LF_VZXZs0Xj7svTZI3io9WxKG9DedNnM7yjM3Ll/exec";   // URL della web app Apps Script (finisce con /exec). Vuoto = libri di prova.
+
+/* Colore delle copertine disegnate, per scaffale (le categorie nuove prendono un colore dalla lista) */
+const COLORI_SCAFFALE = {
+  "Albi illustrati": "#c98a1c",
+  "Narrativa ragazzi": "#2f6690",
+  "Fantasy e avventura": "#5a4a8c",
+  "Fumetti e graphic novel": "#df2f3a",
+  "Gialli e mistero": "#2f4d4a",
+  "Divulgazione": "#3f7a52",
+  "Classici": "#8a3a3a",
+  "Narrativa adulti": "#6b5547"
+};
+const COLORI_RISERVA = ["#2f6690", "#5a4a8c", "#3f7a52", "#8a3a3a", "#c98a1c", "#2f4d4a", "#6b5547"];
+
+/* ================= LIBRI DI PROVA (usati solo se API_URL è vuoto) ================= */
+const PROVA = {
+  categorie: Object.keys(COLORI_SCAFFALE),
+  libri: [
+    { id:"L0001", isbn:"9788804776352", titolo:"Il barone rampante", autori:"Italo Calvino", editore:"Mondadori", anno:"2023", categoria:"Classici", stato:"disponibile", data_inserimento:"2026-09-02",
+      copertina:"https://covers.openlibrary.org/b/isbn/9788804776352-M.jpg?default=false",
+      trama:"Cosimo, dodici anni, sale su un albero per protesta e decide di non scendere più: da lassù vive tutta la sua vita." },
+    { id:"L0002", isbn:"9788833842424", titolo:"L'oppio di Firenze capitale", autori:"Sergio Calamandrei", editore:"Pontecorboli Editore", anno:"2025", categoria:"Gialli e mistero", stato:"in prestito", data_inserimento:"2026-09-02",
+      copertina:"https://covers.openlibrary.org/b/isbn/9788833842424-M.jpg?default=false",
+      trama:"La prima avventura di Sabatino Arturi nella Firenze capitale d'Italia." },
+    { id:"L0003", isbn:"9788804772118", titolo:"Le città invisibili", autori:"Italo Calvino", editore:"Mondadori", anno:"2022", categoria:"Classici", stato:"disponibile", data_inserimento:"2026-09-02",
+      copertina:"https://covers.openlibrary.org/b/isbn/9788804772118-M.jpg?default=false",
+      trama:"Marco Polo racconta a Kublai Khan le città che ha visitato. O forse le inventa." },
+    { id:"L0004", titolo:"Wonder", autori:"R.J. Palacio", editore:"Giunti", anno:"2013", categoria:"Narrativa ragazzi", stato:"disponibile", data_inserimento:"2026-10-10",
+      trama:"Auggie ha dieci anni e un volto diverso da tutti. Quest'anno, per la prima volta, va a scuola." },
+    { id:"L0005", titolo:"Il piccolo principe", autori:"Antoine de Saint-Exupéry", editore:"Bompiani", anno:"2015", categoria:"Classici", stato:"prenotato", data_inserimento:"2026-09-12",
+      trama:"Un aviatore precipitato nel deserto incontra un bambino arrivato da un piccolissimo pianeta." },
+    { id:"L0006", titolo:"Harry Potter e la pietra filosofale", autori:"J.K. Rowling", editore:"Salani", anno:"2014", categoria:"Fantasy e avventura", stato:"in prestito", data_inserimento:"2026-09-12",
+      trama:"Il giorno del suo undicesimo compleanno Harry scopre di essere un mago." },
+    { id:"L0007", titolo:"La storia infinita", autori:"Michael Ende", editore:"Longanesi", anno:"2018", categoria:"Fantasy e avventura", stato:"disponibile", data_inserimento:"2026-09-20",
+      trama:"Bastiano ruba un libro e, leggendolo, si accorge che il regno di Fantàsia ha bisogno di lui." },
+    { id:"L0008", titolo:"Momo", autori:"Michael Ende", editore:"Longanesi", anno:"2019", categoria:"Fantasy e avventura", stato:"disponibile", data_inserimento:"2026-09-20",
+      trama:"Una bambina che sa ascoltare sfida gli Uomini Grigi, che rubano il tempo alle persone." },
+    { id:"L0009", titolo:"Matilde", autori:"Roald Dahl", editore:"Salani", anno:"2016", categoria:"Narrativa ragazzi", stato:"disponibile", data_inserimento:"2026-09-15",
+      trama:"Matilde legge tutto, è un genio e ha due genitori che non se ne accorgono. E poi c'è la preside." },
+    { id:"L0010", titolo:"Il GGG", autori:"Roald Dahl", editore:"Salani", anno:"2016", categoria:"Narrativa ragazzi", stato:"disponibile", data_inserimento:"2026-09-15",
+      trama:"Sofia viene rapita da un gigante: per fortuna è il Grande Gigante Gentile." },
+    { id:"L0011", titolo:"Diario di una schiappa", autori:"Jeff Kinney", editore:"Il Castoro", anno:"2009", categoria:"Narrativa ragazzi", stato:"prenotato", data_inserimento:"2026-10-05",
+      trama:"Il primo anno di medie di Greg Heffley, raccontato da lui, con i suoi disegni." },
+    { id:"L0012", titolo:"Storia di una gabbianella e del gatto che le insegnò a volare", autori:"Luis Sepúlveda", editore:"Salani", anno:"2010", categoria:"Narrativa ragazzi", stato:"disponibile", data_inserimento:"2026-09-28",
+      trama:"Il gatto Zorba promette a una gabbiana di covare il suo uovo e di insegnare a volare al piccolo." },
+    { id:"L0013", titolo:"Il ladro di fulmini", autori:"Rick Riordan", editore:"Mondadori", anno:"2010", categoria:"Fantasy e avventura", stato:"disponibile", data_inserimento:"2026-10-12",
+      trama:"Percy Jackson scopre di essere figlio di un dio greco e ha dieci giorni per evitare una guerra sull'Olimpo." },
+    { id:"L0014", titolo:"Hunger Games", autori:"Suzanne Collins", editore:"Mondadori", anno:"2009", categoria:"Fantasy e avventura", stato:"in prestito", data_inserimento:"2026-10-01",
+      trama:"Katniss prende il posto della sorella nei giochi in cui ventiquattro ragazzi devono sopravvivere." },
+    { id:"L0015", titolo:"Smile", autori:"Raina Telgemeier", editore:"Il Castoro", anno:"2016", categoria:"Fumetti e graphic novel", stato:"disponibile", data_inserimento:"2026-10-14",
+      trama:"A dodici anni Raina cade e si rompe i denti davanti: comincia una lunga storia di apparecchi e amicizie." },
+    { id:"L0016", titolo:"Bone. Fuori da Boneville", autori:"Jeff Smith", editore:"BAO Publishing", anno:"2016", categoria:"Fumetti e graphic novel", stato:"disponibile", data_inserimento:"2026-10-14",
+      trama:"Tre cugini cacciati da Boneville si perdono in una valle piena di misteri." },
+    { id:"L0017", titolo:"Asterix il gallico", autori:"René Goscinny, Albert Uderzo", editore:"Panini", anno:"2019", categoria:"Fumetti e graphic novel", stato:"disponibile", data_inserimento:"2026-09-25",
+      trama:"Un piccolo villaggio di Galli resiste ancora e sempre all'invasore romano." },
+    { id:"L0018", titolo:"Il Gruffalò", autori:"Julia Donaldson, Axel Scheffler", editore:"Emme Edizioni", anno:"2017", categoria:"Albi illustrati", stato:"disponibile", data_inserimento:"2026-09-30",
+      trama:"Un topo attraversa il bosco e, per non farsi mangiare, si inventa un mostro. Che poi incontra." },
+    { id:"L0019", titolo:"Nel paese dei mostri selvaggi", autori:"Maurice Sendak", editore:"Adelphi", anno:"2018", categoria:"Albi illustrati", stato:"disponibile", data_inserimento:"2026-09-30",
+      trama:"Max, mandato a letto senza cena, parte per l'isola dei mostri selvaggi e ne diventa il re." },
+    { id:"L0020", titolo:"Storie della buonanotte per bambine ribelli", autori:"Elena Favilli, Francesca Cavallo", editore:"Mondadori", anno:"2017", categoria:"Divulgazione", stato:"prenotato", data_inserimento:"2026-10-08",
+      trama:"Cento ritratti di donne che hanno cambiato il loro tempo, ognuno in una pagina." },
+    { id:"L0021", titolo:"Il mondo di Sofia", autori:"Jostein Gaarder", editore:"Longanesi", anno:"2016", categoria:"Divulgazione", stato:"disponibile", data_inserimento:"2026-10-08",
+      trama:"Sofia trova nella cassetta della posta due domande: chi sei? da dove viene il mondo? Comincia così la storia della filosofia." },
+    { id:"L0022", titolo:"Il diario di Anna Frank", autori:"Anna Frank", editore:"Einaudi", anno:"2014", categoria:"Classici", stato:"disponibile", data_inserimento:"2026-09-18",
+      trama:"Il diario scritto da Anna nei due anni passati nascosta con la famiglia ad Amsterdam." },
+    { id:"L0023", titolo:"Il buio oltre la siepe", autori:"Harper Lee", editore:"Feltrinelli", anno:"2015", categoria:"Narrativa adulti", stato:"disponibile", data_inserimento:"2026-09-18",
+      trama:"Scout racconta l'estate in cui suo padre, avvocato, difese un uomo nero accusato ingiustamente." },
+    { id:"L0024", titolo:"La profezia dell'armadillo", autori:"Zerocalcare", editore:"BAO Publishing", anno:"2012", categoria:"Fumetti e graphic novel", stato:"in prestito", data_inserimento:"2026-10-16",
+      trama:"Zero, il suo armadillo e i pensieri di chi ha da poco perso un'amica d'infanzia." }
+  ]
+};
+
+/* ================= CODICE ================= */
+const CHIAVE_CACHE = "biblioteca-aurora-catalogo";
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+const norm = s => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const chiaveTitolo = t => norm(t).replace(/^(il|lo|la|i|gli|le|un|uno|una)\s+|^(l|un)'\s*/, "");   // ignora l'articolo iniziale
+const ETICHETTA_STATO = { "disponibile":"Disponibile", "prenotato":"Prenotato", "in prestito":"In prestito" };
+const classeStato = s => String(s || "").replace(" ", "-");
+
+let LIBRI = [], CATEGORIE = [];
+const filtro = { q:"", categoria:"", soloDisponibili:false, ordine:"recenti" };
+
+function colore(cat) {
+  if (COLORI_SCAFFALE[cat]) return COLORI_SCAFFALE[cat];
+  let h = 0; for (const c of String(cat)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return COLORI_RISERVA[h % COLORI_RISERVA.length];
+}
+
+// conFascia: nella griglia i libri non disponibili hanno la copertina velata e la scritta in basso
+function copertina(l, conFascia) {
+  const occupato = conFascia && l.stato !== "disponibile";
+  return `<div class="copertina ${occupato ? "occupato" : ""}" style="--c:${colore(l.categoria)}" aria-hidden="true">
+    <span class="t">${esc(l.titolo)}</span><span class="a">${esc(l.autori)}</span>
+    ${l.copertina ? `<img src="${esc(l.copertina)}" alt="" loading="lazy">` : ""}
+    ${occupato ? `<span class="fascia">${ETICHETTA_STATO[l.stato] || esc(l.stato)}</span>` : ""}
+  </div>`;
+}
+// se l'immagine non si carica resta la copertina disegnata
+document.addEventListener("error", e => { if (e.target.matches?.(".copertina img")) e.target.remove(); }, true);
+
+/* ---------- caricamento ---------- */
+async function carica() {
+  if (!API_URL) { $("#avviso-demo").hidden = false; usa(PROVA); return; }
+  let salvato = null;
+  try { salvato = JSON.parse(localStorage.getItem(CHIAVE_CACHE)); } catch {}
+  if (salvato?.libri) usa(salvato);   // mostra subito l'ultima copia, poi aggiorna
+  else messaggio("Carico il catalogo…", "La prima apertura può richiedere qualche secondo.");
+  try {
+    const r = await fetch(API_URL + "?azione=catalogo", { cache: "no-store" });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.errore);
+    usa(d);
+    try { localStorage.setItem(CHIAVE_CACHE, JSON.stringify({ libri: d.libri, categorie: d.categorie })); } catch {}
+  } catch (err) {
+    console.error(err);
+    if (!salvato) messaggio("Il catalogo non si è caricato", "Ricarica la pagina tra qualche secondo.");
+  }
+}
+
+function usa(d) {
+  LIBRI = (d.libri || []).map(l => ({ ...l, _testo: norm([l.titolo, l.autori, l.editore, l.isbn, l.categoria].join(" ")) }));
+  const usate = [...new Set(LIBRI.map(l => l.categoria).filter(Boolean))];
+  CATEGORIE = (d.categorie?.length ? d.categorie : usate).filter(c => usate.includes(c));
+  if (filtro.categoria && !CATEGORIE.includes(filtro.categoria)) filtro.categoria = "";
+  disegnaScaffali();
+  disegna();
+  apriDaIndirizzo();
+}
+
+/* ---------- filtri ---------- */
+function disegnaScaffali() {
+  $("#scaffali").innerHTML = ["", ...CATEGORIE].map(c =>
+    `<button type="button" data-cat="${esc(c)}" aria-pressed="${filtro.categoria === c}">${c ? esc(c) : "Tutti"}</button>`).join("");
+}
+
+function risultati() {
+  const parole = norm(filtro.q).split(/\s+/).filter(Boolean);
+  const cifre = filtro.q.replace(/[\s-]/g, "");
+  const r = LIBRI.filter(l =>
+    (!filtro.categoria || l.categoria === filtro.categoria) &&
+    (!filtro.soloDisponibili || l.stato === "disponibile") &&
+    (parole.every(p => l._testo.includes(p)) || (/^\d{4,}$/.test(cifre) && String(l.isbn || "").includes(cifre))));
+  const perTitolo = (a, b) => chiaveTitolo(a.titolo).localeCompare(chiaveTitolo(b.titolo), "it");
+  const cmp = {
+    titolo: perTitolo,
+    autore: (a, b) => norm(a.autori).localeCompare(norm(b.autori), "it") || perTitolo(a, b),
+    recenti: (a, b) => String(b.data_inserimento || "").localeCompare(String(a.data_inserimento || "")) || String(b.id).localeCompare(String(a.id))
+  }[filtro.ordine];
+  return r.sort(cmp);
+}
+
+function disegna() {
+  const r = risultati();
+  const disp = r.filter(l => l.stato === "disponibile").length;
+  $("#conteggio").textContent = r.length === 1 ? "1 libro" : `${r.length} libri, ${disp} disponibili`;
+  $("#libri").innerHTML = r.map(l => `
+    <li><button class="libro" type="button" data-id="${esc(l.id)}" aria-label="${esc(l.titolo)}, ${esc(l.autori)}: ${ETICHETTA_STATO[l.stato] || esc(l.stato)}">
+      ${copertina(l, true)}
+      <h2>${esc(l.titolo)}</h2>
+    </button></li>`).join("");
+  if (r.length) $("#messaggio").hidden = true;
+  else if (!LIBRI.length) messaggio("Il catalogo è ancora vuoto", "I libri arrivano presto: torna a dare un'occhiata.");
+  else messaggio("Nessun libro trovato", filtro.q ? `Niente per «${filtro.q}». Prova con un'altra parola o togli i filtri.` : "Prova a togliere i filtri.");
+}
+
+function messaggio(titolo, testo) {
+  $("#messaggio").innerHTML = `<h2>${esc(titolo)}</h2><p>${esc(testo)}</p>`;
+  $("#messaggio").hidden = false;
+}
+
+$("#q").addEventListener("input", e => { filtro.q = e.target.value.trim(); $("#svuota").hidden = !e.target.value; disegna(); });
+$("#svuota").addEventListener("click", () => { $("#q").value = ""; filtro.q = ""; $("#svuota").hidden = true; $("#q").focus(); disegna(); });
+$("#scaffali").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  filtro.categoria = b.dataset.cat;
+  document.querySelectorAll("#scaffali button").forEach(x => x.setAttribute("aria-pressed", x === b));
+  disegna();
+});
+$("#disponibili").addEventListener("change", e => { filtro.soloDisponibili = e.target.checked; disegna(); });
+$("#ordine").addEventListener("change", e => { filtro.ordine = e.target.value; disegna(); });
+$("#libri").addEventListener("click", e => { const b = e.target.closest(".libro"); if (b) apri(b.dataset.id); });
+
+/* ---------- lente flottante ----------
+   Compare quando la casella di ricerca è scorsa sopra lo schermo; toccandola si torna
+   alla ricerca con la tastiera già aperta. */
+const lente = $("#lente");
+new IntersectionObserver(([v]) => {
+  const sopra = !v.isIntersecting && v.boundingClientRect.top < 0;
+  lente.classList.toggle("visibile", sopra);
+  lente.tabIndex = sopra ? 0 : -1;
+}, { rootMargin: "-70px 0px 0px 0px" }).observe($(".ricerca"));
+lente.addEventListener("click", () => {
+  const q = $("#q");
+  q.focus({ preventScroll: true });   // dentro il tocco, così il telefono apre la tastiera
+  const y = $(".ricerca").getBoundingClientRect().top + scrollY - $(".testata").offsetHeight - 12;
+  scrollTo({ top: Math.max(0, y), behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+});
+
+/* ---------- scheda del libro ---------- */
+const dialogo = $("#dialogo");
+
+function apri(id) {
+  const l = LIBRI.find(x => x.id === id);
+  if (!l) return;
+  const dati = [["Editore", l.editore], ["Anno", l.anno], ["ISBN", l.isbn]].filter(d => d[1]);
+  $("#scheda").innerHTML = `
+    <button class="chiudi" type="button" aria-label="Chiudi" data-chiudi>×</button>
+    <div class="scheda-testa">
+      ${copertina(l, false)}
+      <div>
+        <h2 id="scheda-titolo">${esc(l.titolo)}</h2>
+        <p class="autori">${esc(l.autori)}</p>
+        ${dati.length ? `<dl class="dati">${dati.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join("")}</dl>` : ""}
+        <span class="stato ${classeStato(l.stato)}">${ETICHETTA_STATO[l.stato] || esc(l.stato)}</span>
+      </div>
+    </div>
+    ${l.trama ? `<p class="trama">${esc(l.trama)}</p>` : ""}
+    ${l.categoria ? `<section class="dove">
+      <h3>Lo trovi qui: ${esc(l.categoria)}</h3>
+      <div class="mappa">${CATEGORIE.map(c => `<span class="${c === l.categoria ? "qui" : ""}">${esc(c)}</span>`).join("")}</div>
+    </section>` : ""}
+    <section class="prestito" id="prestito">${zonaPrestito(l)}</section>`;
+  if (!dialogo.open) dialogo.showModal();
+  dialogo.scrollTop = 0;
+  history.replaceState(null, "", "#" + l.id);
+}
+
+function zonaPrestito(l) {
+  if (l.stato === "prenotato") return `<p>Qualcuno l'ha già chiesto in prestito. Torna a controllare tra qualche settimana.</p>`;
+  if (l.stato === "in prestito") return `<p>Ora è in prestito. Torna a controllare più avanti.</p>`;
+  return `<p>Lascia nome e contatti: ti scriviamo quando è pronto e lo ritiri in biblioteca negli orari di apertura.</p>
+    <button class="bottone" type="button" data-richiedi="${esc(l.id)}">Chiedi in prestito</button>`;
+}
+
+function formRichiesta(l) {
+  $("#prestito").innerHTML = `
+    <form class="richiesta" id="form-richiesta" novalidate>
+      <h3>Chiedi in prestito</h3>
+      <p class="nota">Ti scriviamo quando il libro è pronto da ritirare.</p>
+      <label>Nome e cognome<input name="nome" required autocomplete="name" enterkeyhint="next"></label>
+      <label>Email<input name="email" type="email" required autocomplete="email" inputmode="email" enterkeyhint="next"></label>
+      <label>Telefono<input name="telefono" type="tel" required autocomplete="tel" inputmode="tel" enterkeyhint="send"></label>
+      <p class="esito" id="esito" aria-live="polite"></p>
+      <div class="azioni">
+        <button class="bottone" type="submit">Invia la richiesta</button>
+        <button class="bottone chiaro" type="button" data-annulla="${esc(l.id)}">Annulla</button>
+      </div>
+    </form>`;
+  const f = $("#form-richiesta");
+  f.scrollIntoView({ block: "start", behavior: "smooth" });
+  setTimeout(() => f.nome.focus({ preventScroll: true }), 300);
+
+  // Invio sui primi due campi passa al successivo; sull'ultimo invia
+  f.addEventListener("keydown", ev => {
+    if (ev.key !== "Enter" || ev.target === f.telefono || ev.target.tagName !== "INPUT") return;
+    ev.preventDefault();
+    (ev.target === f.nome ? f.email : f.telefono).focus();
+  });
+  f.addEventListener("input", ev => ev.target.removeAttribute("aria-invalid"));
+
+  f.addEventListener("submit", async ev => {
+    ev.preventDefault();
+    const esito = $("#esito");
+    esito.className = "esito"; esito.textContent = "";
+    const mancanti = [
+      [f.nome, !f.nome.value.trim()],
+      [f.email, !f.email.value.trim() || !f.email.checkValidity()],
+      [f.telefono, !f.telefono.value.trim()]
+    ].filter(([, male]) => male).map(([campo]) => campo);
+    if (mancanti.length) {
+      mancanti.forEach(c => c.setAttribute("aria-invalid", "true"));
+      esito.textContent = "Compila nome, email e telefono."; esito.classList.add("errore");
+      mancanti[0].focus();
+      return;
+    }
+    const bottone = f.querySelector('[type="submit"]');
+    bottone.disabled = true; bottone.textContent = "Invio…";
+    const email = f.email.value.trim();
+    const r = API_URL
+      ? await invia({ azione: "richiesta", id_libro: l.id, nome: f.nome.value.trim(), email, telefono: f.telefono.value.trim() })
+      : { ok: true, prova: true };
+    if (r.ok) {
+      $("#prestito").innerHTML = `<div class="fatto"><h3>Richiesta inviata</h3>
+        <p>Ti arriva una mail di conferma a ${esc(email)}. Quando il libro è pronto ti scriviamo: lo ritiri in biblioteca.</p>
+        ${r.prova ? `<p class="esito">Anteprima: non è stato inviato niente.</p>` : ""}</div>`;
+      $("#prestito").scrollIntoView({ block: "nearest", behavior: "smooth" });
+      if (!r.prova) { l.stato = "prenotato"; disegna(); }
+    } else {
+      esito.textContent = r.errore || "La richiesta non è partita: riprova."; esito.classList.add("errore");
+      bottone.disabled = false; bottone.textContent = "Invia la richiesta";
+    }
+  });
+}
+
+dialogo.addEventListener("click", e => {
+  if (e.target === dialogo || e.target.closest("[data-chiudi]")) return dialogo.close();
+  const ric = e.target.closest("[data-richiedi]"); if (ric) return formRichiesta(LIBRI.find(x => x.id === ric.dataset.richiedi));
+  const ann = e.target.closest("[data-annulla]"); if (ann) $("#prestito").innerHTML = zonaPrestito(LIBRI.find(x => x.id === ann.dataset.annulla));
+});
+dialogo.addEventListener("close", () => history.replaceState(null, "", location.pathname + location.search));
+
+// quando si apre la tastiera del telefono, il campo in cui si scrive resta in vista
+(window.visualViewport || window).addEventListener("resize", () => {
+  const a = document.activeElement;
+  if (a && a.closest && a.closest("form.richiesta")) a.scrollIntoView({ block: "center" });
+});
+
+// link diretto a un libro: …/biblioteca/#L0012
+function apriDaIndirizzo() {
+  const id = decodeURIComponent(location.hash.slice(1));
+  if (id && !dialogo.open && LIBRI.some(l => l.id === id)) apri(id);
+}
+window.addEventListener("hashchange", apriDaIndirizzo);
+
+/* ---------- invio ad Apps Script ----------
+   POST come text/plain (niente preflight CORS). Se la risposta diretta non arriva
+   (avvio lento di Apps Script, redirect), si chiede l'esito con il codice rid. */
+async function invia(dati) {
+  dati.rid = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  const ctrl = new AbortController(); const timer = setTimeout(() => ctrl.abort(), 45000);
+  try {
+    const r = await fetch(API_URL, { method: "POST", body: JSON.stringify(dati), redirect: "follow", signal: ctrl.signal });
+    return await r.json();
+  } catch (err) {
+    for (let i = 0; i < 6; i++) {
+      await new Promise(ok => setTimeout(ok, 2500));
+      try {
+        const x = await fetch(`${API_URL}?azione=esito&rid=${dati.rid}`, { cache: "no-store" }).then(r => r.json());
+        if (x.risposta) return x.risposta;
+      } catch {}
+    }
+    return { ok: false, errore: "Nessuna risposta dal server: controlla la connessione e riprova." };
+  } finally { clearTimeout(timer); }
+}
+
+carica();
+</script>
+</body>
+</html>
