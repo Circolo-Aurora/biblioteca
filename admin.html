@@ -61,6 +61,17 @@ form{display:grid;gap:12px}
 .isbn-riga{display:flex;gap:8px}
 .isbn-riga input{font-size:1.25rem;letter-spacing:.04em;padding:12px 14px}
 .aiuto{margin:-4px 0 0;font-size:.88rem;color:var(--grigio)}
+.scansiona{display:flex;align-items:center;justify-content:center;gap:10px;width:100%}
+.scansiona svg{width:24px;height:24px}
+
+/* scanner a tutto schermo */
+.scanner{position:fixed;inset:0;z-index:50;background:#000;display:grid}
+.scanner video{width:100%;height:100%;object-fit:cover;grid-area:1/1}
+.mirino{grid-area:1/1;place-self:center;width:min(82vw,420px);aspect-ratio:2/1;border:3px solid #fff;border-radius:12px;
+  box-shadow:0 0 0 100vmax rgba(0,0,0,.45)}
+.scanner-giu{grid-area:1/1;align-self:end;display:grid;justify-items:center;gap:12px;padding:20px 16px calc(24px + env(safe-area-inset-bottom));color:#fff;text-align:center}
+.scanner-giu p{margin:0;font-size:1.05rem;max-width:26em}
+.scanner-giu .bottone{background:var(--pagina);color:var(--inchiostro);border-color:var(--pagina);min-width:160px}
 
 /* scheda del libro */
 .libro-form{grid-template-columns:1fr}
@@ -130,6 +141,10 @@ form{display:grid;gap:12px}
         <input id="isbn" inputmode="numeric" autocomplete="off" placeholder="978…" enterkeyhint="search">
         <button class="bottone" type="submit">Cerca</button>
       </div>
+      <button class="bottone chiaro scansiona" type="button" id="scansiona" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8v8M10 8v8M13 8v8M17 8v8"/></svg>
+        Scansiona il codice a barre
+      </button>
       <p class="aiuto">Le cifre sotto il codice a barre, con o senza trattini. Se il libro non ha ISBN, compila direttamente la scheda.</p>
       <p class="esito" id="esito-isbn" aria-live="polite"></p>
     </form>
@@ -165,6 +180,16 @@ form{display:grid;gap:12px}
     <ul id="lista-aggiunti"></ul>
   </section>
 </main>
+
+<!-- fotocamera per il codice a barre -->
+<div class="scanner" id="scanner" hidden role="dialog" aria-label="Scansione del codice a barre">
+  <video id="video" playsinline muted></video>
+  <div class="mirino" aria-hidden="true"></div>
+  <div class="scanner-giu">
+    <p id="scanner-testo">Avvio la fotocamera…</p>
+    <button class="bottone chiaro" type="button" id="scanner-chiudi">Annulla</button>
+  </div>
+</div>
 
 <footer class="piede"><div class="contenitore"><a href="./">Torna al catalogo</a></div></footer>
 
@@ -244,6 +269,7 @@ async function entra(password, silenzioso) {
   esito.textContent = "";
   disegnaAnteprima();
   $("#isbn").focus();
+  if (!$("#scansiona").hidden) preparaRilevatore().catch(() => {});   // il lettore si carica in anticipo
 }
 
 accesso.addEventListener("submit", e => {
@@ -349,6 +375,86 @@ formIsbn.addEventListener("submit", async e => {
   disegnaAnteprima();
 });
 $("#isbn").addEventListener("input", e => e.target.removeAttribute("aria-invalid"));
+
+/* ---------- scansione del codice a barre ----------
+   Usa il lettore del browser se c'è (Chrome su Android), altrimenti una libreria
+   che fa la stessa cosa (iPhone, computer). Letto un ISBN, parte subito la ricerca. */
+const LIBRERIA_SCANNER = "https://cdn.jsdelivr.net/npm/barcode-detector@3.2.0/dist/es/ponyfill.js";
+const video = $("#video");
+let rilevatore = null, flusso = null, giro = null, scannerAperto = false;
+
+async function preparaRilevatore() {
+  if (rilevatore) return rilevatore;
+  if ("BarcodeDetector" in window) {
+    try {
+      const formati = await BarcodeDetector.getSupportedFormats();
+      if (formati.includes("ean_13")) return (rilevatore = new BarcodeDetector({ formats: ["ean_13"] }));
+    } catch {}
+  }
+  const m = await import(LIBRERIA_SCANNER);
+  return (rilevatore = new m.BarcodeDetector({ formats: ["ean_13"] }));
+}
+
+function testoScanner(t) { $("#scanner-testo").textContent = t; }
+
+async function apriScanner() {
+  scannerAperto = true;
+  $("#scanner").hidden = false;
+  testoScanner("Avvio la fotocamera…");
+  try {
+    const [det, stream] = await Promise.all([
+      preparaRilevatore(),
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false })
+    ]);
+    if (!scannerAperto) { stream.getTracks().forEach(t => t.stop()); return; }   // annullato nel frattempo
+    flusso = stream;
+    video.srcObject = stream;
+    await video.play();
+    testoScanner("Inquadra il codice a barre sul retro del libro");
+    const cerca = async () => {
+      if (!scannerAperto) return;
+      try {
+        const codici = await det.detect(video);
+        const isbn = codici.map(c => normalizzaIsbn(c.rawValue)).find(v => /^97[89]/.test(v));
+        if (isbn) {
+          navigator.vibrate?.(60);
+          chiudiScanner();
+          $("#isbn").value = isbn;
+          formIsbn.requestSubmit();
+          return;
+        }
+        if (codici.length) testoScanner("Questo codice non è un ISBN: cerca quello che inizia con 978 o 979");
+      } catch {}
+      giro = setTimeout(cerca, 200);
+    };
+    cerca();
+  } catch (err) {
+    chiudiScanner();
+    const esito = $("#esito-isbn");
+    esito.className = "esito errore";
+    esito.textContent = err && err.name === "NotAllowedError"
+      ? "La fotocamera non ha il permesso: consentila nelle impostazioni del browser per questo sito, oppure scrivi l'ISBN."
+      : "Fotocamera o lettore non disponibili su questo dispositivo: scrivi l'ISBN a mano.";
+    console.error(err);
+  }
+}
+
+function chiudiScanner() {
+  scannerAperto = false;
+  clearTimeout(giro);
+  if (flusso) flusso.getTracks().forEach(t => t.stop());
+  flusso = null;
+  video.srcObject = null;
+  $("#scanner").hidden = true;
+}
+
+if (navigator.mediaDevices?.getUserMedia && window.isSecureContext) {
+  $("#scansiona").hidden = false;
+  $("#scansiona").addEventListener("click", apriScanner);
+}
+$("#scanner-chiudi").addEventListener("click", () => { chiudiScanner(); $("#isbn").focus(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && scannerAperto) chiudiScanner(); });
+document.addEventListener("visibilitychange", () => { if (document.hidden && scannerAperto) chiudiScanner(); });
 
 /* ---------- scheda del libro ---------- */
 const libro = $("#form-libro");

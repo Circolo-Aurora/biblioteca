@@ -511,16 +511,33 @@ function formRichiesta(l) {
       ? await invia({ azione: "richiesta", id_libro: l.id, nome: f.nome.value.trim(), email, telefono: f.telefono.value.trim() })
       : { ok: true, prova: true };
     if (r.ok) {
+      const conferma = r.mail === false
+        ? `La richiesta è registrata, ma la mail di conferma a ${esc(email)} non è partita: controlla di averla scritta giusta.`
+        : `Ti arriva una mail di conferma a ${esc(email)}.`;
       $("#prestito").innerHTML = `<div class="fatto"><h3>Richiesta inviata</h3>
-        <p>Ti arriva una mail di conferma a ${esc(email)}. Quando il libro è pronto ti scriviamo: lo ritiri in biblioteca.</p>
+        <p>${conferma} Quando il libro è pronto ti contattiamo: lo ritiri nella biblioteca del Circolo.</p>
         ${r.prova ? `<p class="esito">Anteprima: non è stato inviato niente.</p>` : ""}</div>`;
       $("#prestito").scrollIntoView({ block: "nearest", behavior: "smooth" });
-      if (!r.prova) { l.stato = "prenotato"; disegna(); }
+      if (!r.prova) { l.stato = "prenotato"; disegna(); salvaCopiaLocale(); aggiornaStatoScheda(l); }
+    } else if (r.stato) {
+      // nel frattempo l'ha chiesto qualcun altro
+      l.stato = r.stato; disegna(); salvaCopiaLocale(); aggiornaStatoScheda(l);
+      $("#prestito").innerHTML = `<p>${esc(r.errore)}</p>`;
     } else {
       esito.textContent = r.errore || "La richiesta non è partita: riprova."; esito.classList.add("errore");
       bottone.disabled = false; bottone.textContent = "Invia la richiesta";
     }
   });
+}
+
+function aggiornaStatoScheda(l) {
+  const s = $("#scheda .stato");
+  if (s) { s.className = "stato " + classeStato(l.stato); s.textContent = ETICHETTA_STATO[l.stato] || l.stato; }
+}
+// la copia del catalogo nel browser riflette subito il cambio di stato
+function salvaCopiaLocale() {
+  if (!API_URL) return;
+  try { localStorage.setItem(CHIAVE_CACHE, JSON.stringify({ libri: LIBRI.map(({ _testo, ...l }) => l), categorie: CATEGORIE })); } catch {}
 }
 
 dialogo.addEventListener("click", e => {

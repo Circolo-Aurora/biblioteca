@@ -28,7 +28,7 @@ GitHub Pages (frontend statico)  ──fetch──>  Apps Script (web app)  ─�
 ```
 biblioteca/
 ├── index.html              catalogo pubblico (CSS e JS dentro il file)
-├── admin.html              area riservata: login, ricerca ISBN, inserimento libri
+├── admin.html              area riservata: login, scansione/ricerca ISBN, inserimento libri
 ├── assets/
 │   ├── logo-aurora.png
 │   └── icona-biblioteca.png
@@ -90,7 +90,7 @@ Elenco delle categorie/scaffali (usato per la convalida e restituito al frontend
 |---|---|---|---|
 | `?azione=catalogo` | GET | — | `{ libri: [...], categorie: [...] }` (solo campi pubblici) |
 | `?azione=esito&rid=…` | GET | — | la risposta di un POST già inviato (se quella diretta si è persa) |
-| `richiesta` | POST | `id_libro, nome, email, telefono` | conferma; libro → `prenotato`; mail alla bibliotecaria e al richiedente |
+| `richiesta` | POST | `id_libro, nome, email, telefono` | riga in Prestiti (`P0001`…), libro → `prenotato`, mail alla bibliotecaria (rispondendo si scrive al richiedente) e conferma al richiedente; se il libro non è più disponibile `{ok:false, stato}` |
 | `desiderio` | POST | `titolo, autore, nota, nome?, email?` | conferma (fase 4) |
 | `login` | POST | `password` | ok / errore |
 | `aggiungiLibro` | POST | `password` + campi libro | `id` assegnato |
@@ -128,7 +128,7 @@ Note tecniche:
 - Durata: 2 mesi dal ritiro.
 - Alla restituzione: compilata `data_restituzione`, prestito → `restituito`, libro → `disponibile`.
 
-Nelle fasi 1–2 questi passaggi si fanno a mano nel foglio. Nella fase 3, un trigger `onEdit` (o una mini dashboard) li sincronizza.
+La bibliotecaria cambia solo la colonna `stato` del tab Prestiti: il trigger `onEdit` aggiorna lo stato del libro in Libri e compila `data_ritiro` / `data_restituzione` con la data del giorno. `richiesto` → libro prenotato; `in prestito` → in prestito; `restituito` / `annullato` → disponibile.
 
 ## Fasi
 
@@ -141,11 +141,12 @@ Nelle fasi 1–2 questi passaggi si fanno a mano nel foglio. Nella fase 3, un tr
 - [ ] Inserire i primi libri (l'export di My Library ha 4 titoli: si ricaricano dall'area riservata)
 
 ### Fase 2 — Richiesta di prestito
-- [ ] Form nella scheda libro
-- [ ] Endpoint `richiesta` + mail alla bibliotecaria e conferma al richiedente
+- [x] Form nella scheda libro
+- [x] Endpoint `richiesta` + mail alla bibliotecaria e conferma al richiedente
+- [x] Allineamento automatico libro ↔ prestito quando si cambia lo stato nel foglio
+- [x] Scansione del codice a barre nell'area riservata (BarcodeDetector del browser, altrimenti `barcode-detector@3.2.0` da jsDelivr)
 
 ### Fase 3 — Gestione prestiti
-- [ ] Trigger `onEdit` su `Prestiti` per allineare lo stato dei libri
 - [ ] Trigger giornaliero: reminder 7 giorni prima della scadenza e alla scadenza
 - [ ] (eventuale) mini dashboard nell'area riservata: richieste aperte, prestiti in corso, scaduti
 

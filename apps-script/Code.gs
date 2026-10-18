@@ -2,6 +2,17 @@
  * Biblioteca del Circolo ARCI Aurora (Leccio) — backend del catalogo
  * ===================================================================
  * Fase 1: catalogo pubblico, login dell'area riservata, inserimento libri.
+ * Fase 2: richieste di prestito dal sito, con mail alla bibliotecaria e conferma a chi chiede.
+ *
+ * DOPO AVER INCOLLATO UNA VERSIONE NUOVA CHE MANDA MAIL: esegui una volta "provaMail" dall'editor
+ * e concedi il permesso di inviare email, poi pubblica la nuova versione (vedi sotto).
+ *
+ * GESTIONE DEI PRESTITI NEL FOGLIO (tab Prestiti, colonna "stato"):
+ *   richiesto   → la riga la crea il sito; il libro risulta "prenotato"
+ *   in prestito → quando lo consegni; la data_ritiro si compila da sola, la scadenza si calcola
+ *   restituito  → quando torna; data_restituzione automatica, il libro torna "disponibile"
+ *   annullato   → se non viene ritirato; il libro torna "disponibile"
+ * Lo stato del libro nel tab Libri si aggiorna da solo quando cambi questa colonna.
  *
  * INSTALLAZIONE (una volta sola, dall'account della sagra)
  * 1. Crea un foglio Google vuoto, es. "Biblioteca Circolo Aurora".
@@ -32,6 +43,8 @@
 
 const FUSO = "Europe/Rome";
 const DURATA_CACHE = 600;   // secondi di validità del catalogo in cache
+const NOME_MITTENTE = "Biblioteca del Circolo ARCI Aurora";   // nome che compare nelle mail
+const URL_SITO = "https://circolo-aurora.github.io/biblioteca/";
 
 const TAB = {
   Libri:    ["id", "isbn", "titolo", "autori", "editore", "anno", "categoria", "copertina", "trama", "stato", "data_inserimento"],
@@ -83,11 +96,15 @@ function doPost(e) {
   let d = {};
   try { d = JSON.parse(e.postData.contents); } catch (err) {}
   const rid = String(d.rid || "").slice(0, 40);
+  // stesso invio già registrato (es. doppio tocco): si restituisce la stessa risposta senza riscrivere
+  const gia = rid ? CacheService.getScriptCache().get("esito_" + rid) : null;
+  if (gia) return json_(gia);
   let out;
   try {
     switch (d.azione) {
       case "login":         out = login_(d); break;
       case "aggiungiLibro": out = aggiungiLibro_(d); break;
+      case "richiesta":     out = richiesta_(d); break;
       default: throw new Error("Azione non riconosciuta.");
     }
   } catch (err) {
@@ -98,9 +115,14 @@ function doPost(e) {
   return json_(testo);
 }
 
-// Trigger semplice: qualsiasi modifica a mano del foglio svuota la cache del catalogo.
+// Trigger semplice, a ogni modifica fatta a mano nel foglio:
+// - svuota la cache del catalogo (il sito vede subito le correzioni);
+// - se cambia lo stato di un prestito, aggiorna lo stato del libro e le date.
 function onEdit(e) {
   try { cacheSvuota_("catalogo"); } catch (err) {}
+  try {
+    if (e && e.range && e.range.getSheet().getName() === "Prestiti") allineaPrestiti_(e.range);
+  } catch (err) { console.error("onEdit: " + err); }
 }
 
 // ---- Azioni --------------------------------------------------------------------------
@@ -163,6 +185,145 @@ function aggiungiLibro_(d) {
   } finally {
     lock.releaseLock();
   }
+}
+
+// Richiesta di prestito dal sito: riga nel tab Prestiti, libro "prenotato", mail a bibliotecaria e richiedente.
+function richiesta_(d) {
+  const nome = pulisci_(d.nome, 120), email = pulisci_(d.email, 200), telefono = pulisci_(d.telefono, 40);
+  if (!nome || !email || !telefono) throw new Error("Compila nome, email e telefono.");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("L'indirizzo email non sembra giusto: controllalo.");
+
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(20000)) throw new Error("Troppe richieste in questo momento: riprova tra qualche secondo.");
+  let libro, id;
+  try {
+    libro = leggiTab_("Libri").find(r => String(r.id) === String(d.id_libro || ""));
+    if (!libro) throw new Error("Libro non trovato nel catalogo: ricarica la pagina.");
+    const stato = String(libro.stato || "disponibile").trim();
+    if (stato !== "disponibile") {
+      return { ok: false, stato: stato, errore: stato === "prenotato"
+        ? "Qualcuno l'ha appena chiesto in prestito: torna a controllare tra qualche settimana."
+        : "Ora è in prestito: torna a controllare più avanti." };
+    }
+    id = prossimoIdPrestito_();
+    scriviRiga_("Prestiti", {
+      id_prestito: id, id_libro: libro.id, titolo: libro.titolo,
+      nome: nome, email: email, telefono: telefono,
+      data_richiesta: new Date(), stato: "richiesto"
+    });
+    impostaStatoLibro_(libro.id, "prenotato");
+    SpreadsheetApp.flush();
+    log_("richiesta", id, libro.id + " «" + libro.titolo + "» — " + nome);
+    cacheSvuota_("catalogo");
+  } finally {
+    lock.releaseLock();
+  }
+
+  // da qui la richiesta è registrata: un problema con le mail non la fa risultare fallita
+  let mail = true;
+  try { mailRichiedente_(libro, nome, email); } catch (err) { mail = false; console.error("Conferma non inviata: " + err); }
+  try { mailBibliotecaria_(libro, id, nome, email, telefono); } catch (err) { console.error("Avviso non inviato: " + err); }
+  return { ok: true, id: id, mail: mail };
+}
+
+function mailRichiedente_(libro, nome, email) {
+  const bibliotecaria = PropertiesService.getScriptProperties().getProperty("EMAIL_BIBLIOTECARIA");
+  const opzioni = {
+    to: email,
+    name: NOME_MITTENTE,
+    subject: "Richiesta di prestito: " + libro.titolo,
+    body: [
+      "Ciao " + nome + ",",
+      "",
+      "abbiamo ricevuto la tua richiesta di prestito per:",
+      "«" + libro.titolo + "»" + (libro.autori ? " di " + libro.autori : ""),
+      "",
+      "Quando il libro è pronto ti contattiamo: lo ritiri nella biblioteca del Circolo negli orari di apertura e lo puoi tenere fino a due mesi.",
+      "",
+      "Se hai cambiato idea, rispondi a questa mail.",
+      "",
+      NOME_MITTENTE + " — Leccio",
+      URL_SITO
+    ].join("\n")
+  };
+  if (bibliotecaria) opzioni.replyTo = bibliotecaria;
+  MailApp.sendEmail(opzioni);
+}
+
+function mailBibliotecaria_(libro, id, nome, email, telefono) {
+  const a = PropertiesService.getScriptProperties().getProperty("EMAIL_BIBLIOTECARIA");
+  if (!a) return;
+  MailApp.sendEmail({
+    to: a,
+    name: NOME_MITTENTE,
+    replyTo: email,
+    subject: "Nuova richiesta di prestito: " + libro.titolo,
+    body: [
+      "Nuova richiesta di prestito (" + id + ")",
+      "",
+      "Libro: «" + libro.titolo + "»" + (libro.autori ? " di " + libro.autori : "") + " (" + libro.id + ")",
+      "Scaffale: " + (libro.categoria || "—"),
+      "",
+      "Chi lo chiede: " + nome,
+      "Email: " + email + "   (rispondendo a questa mail scrivi direttamente a questa persona)",
+      "Telefono: " + telefono,
+      "",
+      "Sul sito il libro ora risulta \"prenotato\". Nel tab Prestiti del foglio, colonna stato:",
+      "- \"in prestito\" quando lo consegni (data di ritiro e scadenza si compilano da sole);",
+      "- \"restituito\" quando torna; \"annullato\" se non viene ritirato.",
+      "",
+      "Foglio: " + SpreadsheetApp.getActiveSpreadsheet().getUrl()
+    ].join("\n")
+  });
+}
+
+// Chiamata da onEdit: per ogni riga modificata del tab Prestiti allinea libro e date allo stato del prestito.
+function allineaPrestiti_(range) {
+  const sh = range.getSheet();
+  const testa = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(h => String(h).trim());
+  const c = n => testa.indexOf(n) + 1;
+  const cStato = c("stato");
+  if (!cStato || range.getColumn() > cStato || range.getLastColumn() < cStato) return;   // colonna stato non toccata
+  const libroPer = { "richiesto": "prenotato", "in prestito": "in prestito", "restituito": "disponibile", "annullato": "disponibile" };
+  const oggi = new Date();
+  for (let r = Math.max(2, range.getRow()); r <= range.getLastRow(); r++) {
+    const stato = String(sh.getRange(r, cStato).getValue()).trim();
+    const idLibro = String(sh.getRange(r, c("id_libro")).getValue()).trim();
+    if (!libroPer[stato] || !idLibro) continue;
+    if (stato === "in prestito" && c("data_ritiro") && !sh.getRange(r, c("data_ritiro")).getValue()) sh.getRange(r, c("data_ritiro")).setValue(oggi);
+    if (stato === "restituito" && c("data_restituzione") && !sh.getRange(r, c("data_restituzione")).getValue()) sh.getRange(r, c("data_restituzione")).setValue(oggi);
+    impostaStatoLibro_(idLibro, libroPer[stato]);
+    log_("stato prestito", sh.getRange(r, c("id_prestito")).getValue(), idLibro + " → " + stato);
+  }
+  cacheSvuota_("catalogo");
+}
+
+function impostaStatoLibro_(idLibro, stato) {
+  const sh = tab_("Libri");
+  const cId = indice_(sh, "id"), cStato = indice_(sh, "stato");
+  const ultima = sh.getLastRow();
+  if (ultima < 2) return false;
+  const ids = sh.getRange(2, cId, ultima - 1, 1).getValues().map(r => String(r[0]).trim());
+  const i = ids.indexOf(String(idLibro).trim());
+  if (i < 0) return false;
+  sh.getRange(i + 2, cStato).setValue(stato);
+  return true;
+}
+
+function prossimoIdPrestito_() {
+  const max = leggiTab_("Prestiti").reduce((m, r) => {
+    const n = /^P(\d+)$/.exec(String(r.id_prestito || ""));
+    return n ? Math.max(m, Number(n[1])) : m;
+  }, 0);
+  return "P" + String(max + 1).padStart(4, "0");
+}
+
+// Da eseguire una volta dall'editor: concede il permesso di mandare mail e ne manda una di prova.
+function provaMail() {
+  const a = PropertiesService.getScriptProperties().getProperty("EMAIL_BIBLIOTECARIA") || Session.getEffectiveUser().getEmail();
+  MailApp.sendEmail({ to: a, name: NOME_MITTENTE, subject: "Prova mail della biblioteca",
+    body: "Se leggi questa mail, le notifiche delle richieste di prestito funzionano.\n\n" + URL_SITO });
+  console.log("Mail di prova inviata a " + a + ". Mail rimaste oggi: " + MailApp.getRemainingDailyQuota());
 }
 
 // ---- Setup ---------------------------------------------------------------------------
