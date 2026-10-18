@@ -5,7 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
 <title>Biblioteca del Circolo ARCI Aurora — Leccio</title>
 <meta name="description" content="Il catalogo della biblioteca del Circolo ARCI Aurora di Leccio: cerca un libro e chiedilo in prestito.">
-<link rel="icon" href="assets/logo-aurora.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#f3e5e3">
+<link rel="icon" href="assets/icone/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="assets/icone/favicon-16.png" sizes="16x16" type="image/png">
+<link rel="apple-touch-icon" href="assets/icone/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Biblioteca">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Patrick+Hand&display=swap" rel="stylesheet">
@@ -167,6 +174,7 @@ form.richiesta .azioni [type="submit"]{flex:1;max-width:320px}
 .piede{border-top:1.5px solid var(--rosa-scuro);padding:22px 0 30px;font-size:.92rem;color:var(--grigio)}
 .piede .contenitore{display:flex;flex-wrap:wrap;gap:8px 24px;justify-content:space-between;align-items:center}
 .piede a{color:var(--inchiostro)}
+.installa{border:1.5px solid var(--inchiostro);background:var(--pagina);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:.92rem}
 .avviso-demo{background:var(--inchiostro);color:var(--pagina);text-align:center;font-size:.85rem;padding:6px 16px}
 </style>
 </head>
@@ -212,6 +220,7 @@ form.richiesta .azioni [type="submit"]{flex:1;max-width:320px}
 <footer class="piede">
   <div class="contenitore">
     <span>Biblioteca del Circolo ARCI Aurora, Leccio (Reggello)</span>
+    <button class="installa" type="button" id="installa" hidden>Installa l'app sul telefono</button>
     <a href="admin.html">Area riservata</a>
   </div>
 </footer>
@@ -580,6 +589,18 @@ async function invia(dati) {
     return { ok: false, errore: "Nessuna risposta dal server: controlla la connessione e riprova." };
   } finally { clearTimeout(timer); }
 }
+
+/* ---------- app installabile ---------- */
+if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+let invitoInstalla = null;
+addEventListener("beforeinstallprompt", e => { e.preventDefault(); invitoInstalla = e; $("#installa").hidden = false; });
+addEventListener("appinstalled", () => { invitoInstalla = null; $("#installa").hidden = true; });
+$("#installa").addEventListener("click", async () => {
+  if (!invitoInstalla) return;
+  invitoInstalla.prompt();
+  await invitoInstalla.userChoice;
+  invitoInstalla = null; $("#installa").hidden = true;
+});
 
 carica();
 </script>

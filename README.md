@@ -29,9 +29,14 @@ GitHub Pages (frontend statico)  ──fetch──>  Apps Script (web app)  ─�
 biblioteca/
 ├── index.html              catalogo pubblico (CSS e JS dentro il file)
 ├── admin.html              area riservata: login, scansione/ricerca ISBN, inserimento libri
+├── manifest.webmanifest    app "Biblioteca" (apre il catalogo)
+├── gestione.webmanifest    app "Gestione libri" (apre l'area riservata)
+├── sw.js                   service worker: installabilità e apertura con poca rete
 ├── assets/
 │   ├── logo-aurora.png
-│   └── icona-biblioteca.png
+│   ├── icona-biblioteca.png
+│   ├── libro-fiorito.svg   il disegno del libro ricalcato in vettoriale (per icone e materiali)
+│   └── icone/              icone delle app, favicon, apple-touch-icon
 ├── apps-script/
 │   └── Code.gs             copia versionata del codice Apps Script
 └── README.md
@@ -119,6 +124,13 @@ Note tecniche:
 - "Cerca" → Google Books, poi Open Library se il primo non trova nulla → compila il form.
 - Il form resta sempre modificabile; senza risultati si compila a mano.
 - Scelta della categoria da menu; "Salva" → `aggiungiLibro`.
+
+## App installabili
+
+Il sito si installa come app dal telefono: su Android Chrome propone "Installa app" (o il pulsante in fondo alla pagina), su iPhone da Safari con Condividi → "Aggiungi alla schermata Home". Le app sono due: **Biblioteca** (catalogo) e **Gestione libri** (area riservata, icona con il "+").
+
+- Le pagine HTML arrivano sempre dalla rete se c'è; immagini, icone, font e lettore di codici a barre restano salvati nel telefono.
+- Se si cambiano immagini o icone, aumentare `VERSIONE` in `sw.js`.
 
 ## Regole del prestito
 

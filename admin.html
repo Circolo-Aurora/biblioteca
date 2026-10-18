@@ -5,7 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
 <meta name="robots" content="noindex">
 <title>Area riservata — Biblioteca del Circolo ARCI Aurora</title>
-<link rel="icon" href="assets/logo-aurora.png">
+<link rel="manifest" href="gestione.webmanifest">
+<meta name="theme-color" content="#f3e5e3">
+<link rel="icon" href="assets/icone/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="assets/icone/favicon-16.png" sizes="16x16" type="image/png">
+<link rel="apple-touch-icon" href="assets/icone/gestione-apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Gestione libri">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Patrick+Hand&display=swap" rel="stylesheet">
@@ -101,6 +108,8 @@ form{display:grid;gap:12px}
 
 .piede{padding:16px 0 30px;font-size:.92rem}
 .piede a{color:var(--inchiostro)}
+.piede-righe{display:grid;gap:10px;justify-items:start}
+.nota-ios{margin:0;color:var(--grigio);font-size:.9rem}
 </style>
 </head>
 <body>
@@ -191,7 +200,11 @@ form{display:grid;gap:12px}
   </div>
 </div>
 
-<footer class="piede"><div class="contenitore"><a href="./">Torna al catalogo</a></div></footer>
+<footer class="piede"><div class="contenitore piede-righe">
+  <a href="./">Torna al catalogo</a>
+  <button class="bottone chiaro piccolo" type="button" id="installa" hidden>Installa “Gestione libri” sul telefono</button>
+  <p class="nota-ios" id="nota-ios" hidden>Per averla come app su iPhone: in Safari tocca Condividi, poi “Aggiungi alla schermata Home”.</p>
+</div></footer>
 
 <script>
 /* ================= IMPOSTAZIONI ================= */
@@ -520,6 +533,20 @@ async function salva(forza) {
   }
 }
 libro.addEventListener("submit", e => { e.preventDefault(); salva(false); });
+
+/* ---------- app installabile ("Gestione libri") ---------- */
+if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+let invitoInstalla = null;
+addEventListener("beforeinstallprompt", e => { e.preventDefault(); invitoInstalla = e; $("#installa").hidden = false; });
+addEventListener("appinstalled", () => { invitoInstalla = null; $("#installa").hidden = true; });
+$("#installa").addEventListener("click", async () => {
+  if (!invitoInstalla) return;
+  invitoInstalla.prompt();
+  await invitoInstalla.userChoice;
+  invitoInstalla = null; $("#installa").hidden = true;
+});
+const suIphone = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+if (suIphone && !navigator.standalone) $("#nota-ios").hidden = false;
 
 /* ---------- avvio: se la password è già stata data in questa scheda del browser, si entra direttamente ---------- */
 let salvata = "";
