@@ -14,7 +14,7 @@
  *
  * GESTIONE DEI PRESTITI NEL FOGLIO (tab Prestiti, colonna "stato"):
  *   richiesto   → la riga la crea il sito; il libro risulta "prenotato"
- *   in prestito → quando lo consegni; la data_ritiro si compila da sola, la scadenza si calcola
+ *   in prestito → quando lo consegni; data_ritiro e scadenza (+2 mesi) si compilano da sole
  *   restituito  → quando torna; data_restituzione automatica, il libro torna "disponibile"
  *   annullato   → se non viene ritirato; il libro torna "disponibile"
  * Lo stato del libro nel tab Libri si aggiorna da solo quando cambi questa colonna.
@@ -47,6 +47,7 @@
 // ---- Impostazioni ----------------------------------------------------------------
 
 const FUSO = "Europe/Rome";
+const MESI_PRESTITO = 2;
 const DURATA_CACHE = 600;   // secondi di validità del catalogo in cache
 const NOME_MITTENTE = "Biblioteca del Circolo ARCI Aurora";   // nome che compare nelle mail
 const URL_SITO = "https://circolo-aurora.github.io/biblioteca/";
@@ -290,20 +291,35 @@ function allineaPrestiti_(range) {
   const sh = range.getSheet();
   const testa = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(h => String(h).trim());
   const c = n => testa.indexOf(n) + 1;
-  const cStato = c("stato");
-  if (!cStato || range.getColumn() > cStato || range.getLastColumn() < cStato) return;   // colonna stato non toccata
+  const cStato = c("stato"), cRitiro = c("data_ritiro"), cScad = c("scadenza");
+  const tocca = col => col && range.getColumn() <= col && range.getLastColumn() >= col;
+  // cambiata a mano la data di ritiro: ricalcola la scadenza
+  if (tocca(cRitiro) && cScad) {
+    for (let r = Math.max(2, range.getRow()); r <= range.getLastRow(); r++) {
+      const d = sh.getRange(r, cRitiro).getValue();
+      sh.getRange(r, cScad).setValue(d instanceof Date ? scadenza_(d) : "");
+    }
+  }
+  if (!tocca(cStato)) return;   // colonna stato non toccata
   const libroPer = { "richiesto": "prenotato", "in prestito": "in prestito", "restituito": "disponibile", "annullato": "disponibile" };
   const oggi = new Date();
   for (let r = Math.max(2, range.getRow()); r <= range.getLastRow(); r++) {
     const stato = String(sh.getRange(r, cStato).getValue()).trim();
     const idLibro = String(sh.getRange(r, c("id_libro")).getValue()).trim();
     if (!libroPer[stato] || !idLibro) continue;
-    if (stato === "in prestito" && c("data_ritiro") && !sh.getRange(r, c("data_ritiro")).getValue()) sh.getRange(r, c("data_ritiro")).setValue(oggi);
+    if (stato === "in prestito" && cRitiro && !sh.getRange(r, cRitiro).getValue()) {
+      sh.getRange(r, cRitiro).setValue(oggi);
+      if (cScad) sh.getRange(r, cScad).setValue(scadenza_(oggi));
+    }
     if (stato === "restituito" && c("data_restituzione") && !sh.getRange(r, c("data_restituzione")).getValue()) sh.getRange(r, c("data_restituzione")).setValue(oggi);
     impostaStatoLibro_(idLibro, libroPer[stato]);
     log_("stato prestito", sh.getRange(r, c("id_prestito")).getValue(), idLibro + " → " + stato);
   }
   cacheSvuota_("catalogo");
+}
+
+function scadenza_(dataRitiro) {
+  const d = new Date(dataRitiro); d.setMonth(d.getMonth() + MESI_PRESTITO); return d;
 }
 
 function impostaStatoLibro_(idLibro, stato) {
@@ -580,11 +596,9 @@ function setup() {
   ["data_richiesta", "data_ritiro", "data_restituzione", "scadenza"].forEach(c => colonna_(pre, c).setNumberFormat("dd/mm/yyyy"));
   colonna_(pre, "telefono").setNumberFormat("@");
   colonna_(pre, "stato").setDataValidation(menu_(STATI_PRESTITO));
-  // scadenza = data_ritiro + 2 mesi, per tutte le righe, con una sola formula nell'intestazione.
-  // (DATE invece di EDATE: EDATE non si espande dentro ARRAYFORMULA)
-  const R = lettera_(pre, "data_ritiro"), col = R + ":" + R;
-  pre.getRange(1, indice_(pre, "scadenza")).setFormula(
-    '=ARRAYFORMULA(IF(ROW(' + col + ')=1,"scadenza",IF(' + col + '="",,DATE(YEAR(' + col + '),MONTH(' + col + ')+2,DAY(' + col + ')))))');
+  // la scadenza (data_ritiro + 2 mesi) la scrive lo script quando il prestito passa a "in prestito"
+  // o quando si cambia a mano data_ritiro (vedi onEdit); niente formule, che dipendono dalla lingua del foglio
+  pre.getRange(1, indice_(pre, "scadenza")).setValue("scadenza");
 
   colonna_(ss.getSheetByName("Desideri"), "stato").setDataValidation(menu_(STATI_DESIDERIO));
   colonna_(ss.getSheetByName("Log"), "timestamp").setNumberFormat("dd/mm/yyyy hh:mm:ss");

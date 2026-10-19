@@ -78,7 +78,7 @@ Una copia per titolo: la disponibilità è un campo del libro.
 | `data_ritiro` | compilata a mano dalla bibliotecaria (o dalla dashboard, fase 3) |
 | `data_restituzione` | |
 | `stato` | `richiesto` · `in prestito` · `restituito` · `annullato` |
-| `scadenza` | ultima colonna, calcolata: `data_ritiro` + 2 mesi (ARRAYFORMULA nell'intestazione, non si scrive a mano) |
+| `scadenza` | scritta dallo script: `data_ritiro` + 2 mesi, quando il prestito passa a "in prestito" o si cambia `data_ritiro` |
 
 ### `Desideri`
 `data` · `titolo` · `autore` · `nota` · `nome` · `email` (facoltativi) · `stato` (`nuovo` · `acquistato` · `scartato`)
