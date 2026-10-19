@@ -62,10 +62,16 @@ Una copia per titolo: la disponibilità è un campo del libro.
 | `editore` | |
 | `anno` | |
 | `categoria` | = scaffale; valori da elenco chiuso (convalida dati, foglio `Config`) |
-| `copertina` | URL dell'immagine (da Google Books / Open Library) |
+| `copertina` | URL dell'immagine (da Google Books / Open Library / Amazon / Drive) |
 | `trama` | facoltativa |
 | `stato` | `disponibile` · `prenotato` · `in prestito` |
 | `data_inserimento` | |
+| `collana` · `genere` · `copie` | facoltative |
+| `copertina_cercata` | scritta da `cercaCopertine`: cosa ha già provato (`isbn+titolo …` / `titolo …`); svuotarla per riprovare |
+| `isbn_trovato` | ISBN dell'edizione da cui viene la copertina trovata per titolo (non è l'ISBN della copia fisica) |
+
+### `Preferiti`
+`chiave` · `id_libro` · `data`: i libri salvati con il cuore, legati alla chiave personale (vedi area personale).
 
 ### `Prestiti`
 | colonna | note |
@@ -79,6 +85,7 @@ Una copia per titolo: la disponibilità è un campo del libro.
 | `data_restituzione` | |
 | `stato` | `richiesto` · `in prestito` · `restituito` · `annullato` |
 | `scadenza` | scritta dallo script: `data_ritiro` + 2 mesi, quando il prestito passa a "in prestito" o si cambia `data_ritiro` |
+| `chiave` | chiave personale del richiedente (area personale senza login) |
 
 ### `Desideri`
 `data` · `titolo` · `autore` · `nota` · `nome` · `email` (facoltativi) · `stato` (`nuovo` · `acquistato` · `scartato`)
@@ -100,6 +107,8 @@ Elenco delle categorie/scaffali (usato per la convalida e restituito al frontend
 | `richiesta` | POST | `id_libro, nome, email, telefono` | riga in Prestiti (`P0001`…), libro → `prenotato`, mail alla bibliotecaria (rispondendo si scrive al richiedente) e conferma al richiedente; se il libro non è più disponibile `{ok:false, stato}` |
 | `desiderio` | POST | `titolo, autore, nota, nome?, email?` | conferma (fase 4) |
 | `login` | POST | `password` | ok / errore |
+| `miei` | POST | `chiave` | prestiti e preferiti di quella chiave (con dati del libro), `nome`, `oggi` |
+| `preferito` | POST | `chiave, id_libro, attivo` | aggiunge/toglie la riga in Preferiti |
 | `aggiungiLibro` | POST | `password` + campi libro | `id` assegnato |
 
 Note tecniche:
@@ -119,6 +128,16 @@ Note tecniche:
 - Griglia dei libri con copertina, titolo, autori, stato.
 - Scheda libro: dati completi, scaffale ("Lo trovi qui: Narrativa per ragazzi"), pulsante "Richiedi in prestito" se disponibile.
 - Form di richiesta: nome, email, telefono → messaggio di conferma con le indicazioni per il ritiro.
+- **Area personale senza login** ("I miei libri"): alla prima richiesta di prestito (o al primo cuore) il sito crea una chiave casuale, la tiene in `localStorage` e la manda nel link della mail di conferma (`?chiave=…`), così la stessa pagina si ritrova su un altro telefono. Mostra prestiti in corso con scadenza, in attesa, già letti e i libri salvati con il cuore. È il seme per gamificazione e login vero quando ci sarà un database.
+- **Cuore** sulla scheda del libro: salva/toglie dai preferiti; l'elenco sta nel telefono (subito) e nel tab `Preferiti` (per seguire la chiave).
+
+### Copertine mancanti (dall'editor Apps Script)
+Tre funzioni, da eseguire dall'editor (menu a tendina accanto a ▶ Esegui; il risultato nel "Registro di esecuzione" in basso):
+- `cercaCopertine`: per ogni libro senza copertina prova prima l'ISBN (Google Books, Open Library, Amazon) e poi titolo + autore (Open Library, poi Google Books con una ricerca stretta e una larga). Lavora 4 minuti e mezzo e si ferma: rilanciarla finché nel registro compare "finito". Segna in `copertina_cercata` cosa ha provato e non riprova.
+- `riprovaCopertine`: svuota il segno dei libri ancora senza copertina (dopo aver corretto titoli/autori o messo la chiave Google). Poi di nuovo `cercaCopertine`.
+- `diagnosiCopertine`: non scrive niente; per i primi 12 libri senza copertina (o quelli con `?` in `copertina_cercata`) scrive nel registro cosa hanno risposto le fonti e perché ogni risultato è stato scartato.
+
+Corrispondenza: tutte le parole significative del nostro titolo (prima di `:` o `.`) devono stare nel titolo trovato, che non deve essere troppo più lungo; il cognome del primo autore (bastano le prime 4 lettere) deve comparire tra gli autori trovati. Google Books senza chiave risponde presto "troppe richieste" (429): mettere `GOOGLE_BOOKS_KEY` nelle proprietà dello script (chiave API del progetto Google Cloud dell'account della sagra, API "Books").
 
 ### Area riservata (`admin.html`)
 - Login con password.
@@ -192,7 +211,7 @@ La bibliotecaria cambia solo la colonna `stato` del tab Prestiti: il trigger `on
 
 1. Creare il Google Sheet dall'account della sagra; Estensioni → Apps Script → incollare `apps-script/Code.gs`.
 2. Eseguire `setup` dall'editor: crea i tab, i menu a tendina e la formula della scadenza.
-3. Impostazioni progetto → Proprietà script: `ADMIN_PASSWORD`, `EMAIL_BIBLIOTECARIA`. Controllo: eseguire `prova`.
+3. Impostazioni progetto → Proprietà script: `ADMIN_PASSWORD`, `EMAIL_BIBLIOTECARIA`, facoltativa `GOOGLE_BOOKS_KEY`. Controllo: eseguire `prova`.
 4. Distribuisci → Applicazione web → esegui come: me, accesso: chiunque. Copiare l'URL.
 5. Incollare l'URL in `API_URL` di `index.html` e `admin.html`, fare push su `main`.
 6. GitHub → Settings → Pages → deploy da `main`, cartella root.

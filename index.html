@@ -174,6 +174,11 @@ dialog::backdrop{background:rgba(46,38,36,.45)}
 .stato.prenotato{color:var(--ambra)}
 .stato.in-prestito{color:var(--grigio)}
 .trama{margin:18px 0 0;max-width:62ch}
+.cuore{display:inline-flex;align-items:center;gap:8px;margin:12px 0 0;padding:6px 12px 6px 8px;border:1.5px solid var(--inchiostro);border-radius:999px;background:#fff;color:var(--inchiostro);font:400 1.05rem/1 var(--mano);cursor:pointer}
+.cuore svg{width:20px;height:20px;fill:none;stroke:var(--rosso);stroke-width:2.2;stroke-linejoin:round;transition:transform .15s}
+.cuore[aria-pressed="true"]{background:var(--rosa);border-color:var(--rosa-scuro)}
+.cuore[aria-pressed="true"] svg{fill:var(--rosso)}
+.cuore:active svg{transform:scale(1.25)}
 
 .dove{margin:22px 0 0;padding:14px 14px 16px;background:var(--rosa);border-radius:12px}
 .dove h3{font:400 1.45rem/1.1 var(--mano);margin:0 0 10px}
@@ -592,6 +597,7 @@ function apri(id) {
         <p class="autori">${esc(l.autori)}</p>
         ${dati.length ? `<dl class="dati">${dati.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join("")}</dl>` : ""}
         <span class="stato ${classeStato(l.stato)}">${ETICHETTA_STATO[l.stato] || esc(l.stato)}</span>
+        <div>${bottoneCuore(l.id)}</div>
       </div>
     </div>
     ${l.trama ? `<p class="trama">${esc(l.trama)}</p>` : ""}
@@ -771,6 +777,26 @@ function chiavePersonale() {
 }
 function haChiave() { try { return /^[a-z0-9]{16,64}$/.test(localStorage.getItem(CHIAVE_PERSONALE) || ""); } catch { return false; } }
 function mostraMiei() { $("#miei-link").hidden = !haChiave(); }
+
+// Preferiti: il cuore sulla scheda. L'elenco sta nel telefono (subito) e nel foglio, legato alla chiave (così segue il link della mail).
+const CHIAVE_PREFERITI = "biblioteca-aurora-preferiti";
+let PREFERITI = new Set();
+try { PREFERITI = new Set(JSON.parse(localStorage.getItem(CHIAVE_PREFERITI)) || []); } catch {}
+const CUORE_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-9.3-9.4C1.5 7.8 3.6 4.5 6.9 4.5c2 0 3.6 1.1 5.1 3 1.5-1.9 3.1-3 5.1-3 3.3 0 5.4 3.3 4.2 6.6-1.8 4.8-9.3 9.4-9.3 9.4z"/></svg>`;
+function bottoneCuore(id) {
+  const on = PREFERITI.has(id);
+  return `<button class="cuore" type="button" data-cuore="${esc(id)}" aria-pressed="${on}">${CUORE_SVG}${on ? "Nei miei libri" : "Salva nei miei libri"}</button>`;
+}
+function toggleCuore(id) {
+  const on = !PREFERITI.has(id);
+  if (on) PREFERITI.add(id); else PREFERITI.delete(id);
+  try { localStorage.setItem(CHIAVE_PREFERITI, JSON.stringify([...PREFERITI])); } catch {}
+  document.querySelectorAll(`[data-cuore="${id}"]`).forEach(b => { b.outerHTML = bottoneCuore(id); });
+  const chiave = chiavePersonale();   // il primo cuore crea la chiave personale: da qui compare "I miei libri"
+  mostraMiei();
+  if (API_URL) invia({ azione: "preferito", chiave, id_libro: id, attivo: on }).catch(() => {});
+}
+document.addEventListener("click", e => { const b = e.target.closest("[data-cuore]"); if (b) toggleCuore(b.dataset.cuore); });
 // arrivo dal link della mail: la chiave passa a questo telefono
 (() => {
   const k = new URLSearchParams(location.search).get("chiave");
@@ -789,22 +815,27 @@ async function apriMiei() {
   const r = API_URL ? await invia({ azione: "miei", chiave: chiavePersonale() }) : { ok: true, nome: "Mattia", oggi: "2026-10-19", prestiti: [
     { id_prestito: "P0001", id_libro: "L0013", titolo: "Il ladro di fulmini", autori: "Rick Riordan", categoria: "Fantasy e avventura", stato: "in prestito", data_ritiro: "2026-09-01", scadenza: "2026-11-01" },
     { id_prestito: "P0002", id_libro: "L0009", titolo: "Matilde", autori: "Roald Dahl", categoria: "Narrativa ragazzi", stato: "richiesto", data_richiesta: "2026-10-18" },
-    { id_prestito: "P0000", id_libro: "L0018", titolo: "Il Gruffalò", autori: "Julia Donaldson", categoria: "Albi illustrati", stato: "restituito", data_restituzione: "2026-08-20" }] };
+    { id_prestito: "P0000", id_libro: "L0018", titolo: "Il Gruffalò", autori: "Julia Donaldson", categoria: "Albi illustrati", stato: "restituito", data_restituzione: "2026-08-20" }], preferiti: [] };
   if (!r.ok) { $("#miei").innerHTML = `<p class="sotto-desiderio">Non riesco a leggere i tuoi prestiti: riprova tra poco.</p>`; return; }
   const oggi = r.oggi || new Date().toISOString().slice(0, 10);
   const dataIt = s => { if (!s) return ""; const [a, m, g] = String(s).split("-"); return g ? `${g}/${m}/${a}` : s; };
   const giorni = (a, b) => Math.round((new Date(a) - new Date(b)) / 86400000);
   const p = r.prestiti || [];
   const inCorso = p.filter(x => x.stato === "in prestito"), attesa = p.filter(x => x.stato === "richiesto"), letti = p.filter(x => x.stato === "restituito");
+  // preferiti: quelli del foglio più quelli salvati in questo telefono (se il foglio ne ha di nuovi, li teniamo anche qui)
+  (r.preferiti || []).forEach(x => PREFERITI.add(x.id_libro));
+  try { localStorage.setItem(CHIAVE_PREFERITI, JSON.stringify([...PREFERITI])); } catch {}
+  const preferiti = [...PREFERITI].map(id => (r.preferiti || []).find(x => x.id_libro === id) || LIBRI.find(l => l.id === id)).filter(Boolean)
+    .map(x => ({ id_libro: x.id_libro || x.id, titolo: x.titolo, autori: x.autori, categoria: x.categoria, copertina: x.copertina, stato: x.stato }));
   const riga = (x, testo, cls = "") => `<div class="miei-riga" data-id="${esc(x.id_libro)}">
       ${copertina({ titolo: x.titolo, autori: x.autori, categoria: x.categoria, copertina: x.copertina, stato: "disponibile" }, false)}
       <div><b>${esc(x.titolo)}</b><span class="${cls}">${testo}</span></div></div>`;
-  if (!p.length) {
-    $("#miei").innerHTML = `<p class="sotto-desiderio">Qui vedrai i libri che hai in prestito, le scadenze e quelli che hai già letto. Per ora non c'è niente: cerca un libro e chiedilo in prestito.</p>`;
+  if (!p.length && !preferiti.length) {
+    $("#miei").innerHTML = `<p class="sotto-desiderio">Qui vedrai i libri che hai in prestito, le scadenze, quelli che hai già letto e quelli salvati con il cuore. Per ora non c'è niente: cerca un libro e chiedilo in prestito.</p>`;
     return;
   }
   let h = `<p class="sotto-desiderio">${r.nome ? "Ciao " + esc(r.nome) + "! " : ""}Questa è la tua pagina: la ritrovi dal link nella mail di conferma, anche su un altro telefono.</p>
-    <div class="miei-numeri"><div><b>${letti.length}</b>libri letti</div><div><b>${inCorso.length}</b>in prestito</div>${attesa.length ? `<div><b>${attesa.length}</b>in attesa</div>` : ""}</div>`;
+    <div class="miei-numeri"><div><b>${letti.length}</b>libri letti</div><div><b>${inCorso.length}</b>in prestito</div>${attesa.length ? `<div><b>${attesa.length}</b>in attesa</div>` : ""}${preferiti.length ? `<div><b>${preferiti.length}</b>salvati</div>` : ""}</div>`;
   if (inCorso.length) h += `<section class="miei-gruppo"><h3>Da restituire</h3>` + inCorso.map(x => {
     const d = x.scadenza ? giorni(x.scadenza, oggi) : null;
     const t = d === null ? "in prestito" : d < 0 ? `scaduto da ${-d} giorni: riportalo in biblioteca` : d === 0 ? "scade oggi" : `entro il ${dataIt(x.scadenza)} (${d} giorni)`;
@@ -812,6 +843,7 @@ async function apriMiei() {
   }).join("") + `</section>`;
   if (attesa.length) h += `<section class="miei-gruppo"><h3>In attesa di ritiro</h3>` + attesa.map(x => riga(x, `richiesto il ${dataIt(x.data_richiesta)}: ti scriviamo quando è pronto`)).join("") + `</section>`;
   if (letti.length) h += `<section class="miei-gruppo"><h3>Già letti</h3>` + letti.map(x => riga(x, `restituito il ${dataIt(x.data_restituzione)}`)).join("") + `</section>`;
+  if (preferiti.length) h += `<section class="miei-gruppo"><h3>Salvati con il cuore</h3>` + preferiti.map(x => riga(x, ETICHETTA_STATO[x.stato] || "da leggere")).join("") + `</section>`;
   $("#miei").innerHTML = h;
 }
 $("#apri-miei").addEventListener("click", apriMiei);

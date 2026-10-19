@@ -56,6 +56,7 @@ const TAB = {
   Libri:    ["id", "isbn", "titolo", "autori", "editore", "anno", "categoria", "copertina", "trama", "stato", "data_inserimento", "collana", "genere", "copie", "copertina_cercata", "isbn_trovato"],
   Prestiti: ["id_prestito", "id_libro", "titolo", "nome", "email", "telefono", "data_richiesta", "data_ritiro", "data_restituzione", "stato", "scadenza", "chiave"],
   Desideri: ["id_desiderio", "data", "titolo", "autore", "nota", "nome", "email", "stato"],
+  Preferiti: ["chiave", "id_libro", "data"],
   Rimossi:  ["id", "isbn", "titolo", "autori", "editore", "anno", "categoria", "copertina", "trama", "stato", "data_inserimento", "collana", "genere", "copie", "data_rimozione", "motivo"],
   Log:      ["timestamp", "azione", "id", "dettaglio"],
   Config:   ["categoria"]
@@ -114,6 +115,7 @@ function doPost(e) {
       case "aggiungiLibro": out = aggiungiLibro_(d); break;
       case "richiesta":     out = richiesta_(d); break;
       case "miei":          out = miei_(d); break;
+      case "preferito":     out = preferito_(d); break;
       case "caricaCopertina": out = caricaCopertina_(d); break;
       case "prestiti":      out = prestiti_(d); break;
       case "cambiaPrestito": out = cambiaPrestito_(d); break;
@@ -322,7 +324,7 @@ function allineaPrestiti_(range) {
 // e nel link della mail di conferma). Restituisce solo i dati del prestito e del libro, niente contatti.
 function miei_(d) {
   const chiave = String(d.chiave || "");
-  if (!/^[a-z0-9]{16,64}$/.test(chiave)) return { ok: true, prestiti: [] };
+  if (!/^[a-z0-9]{16,64}$/.test(chiave)) return { ok: true, prestiti: [], preferiti: [] };
   const libri = {}; leggiTab_("Libri").forEach(l => { libri[String(l.id)] = l; });
   const campi = ["id_prestito", "id_libro", "titolo", "data_richiesta", "data_ritiro", "data_restituzione", "stato", "scadenza"];
   let nome = "";
@@ -333,7 +335,23 @@ function miei_(d) {
     nome = formatta_(r.nome) || nome;
     return o;
   });
-  return { ok: true, nome: nome.split(" ")[0], prestiti: prestiti, oggi: formatta_(new Date()) };
+  const preferiti = leggiTab_("Preferiti").filter(r => String(r.chiave || "") === chiave && libri[String(r.id_libro)]).map(r => {
+    const l = libri[String(r.id_libro)];
+    return { id_libro: String(r.id_libro), titolo: formatta_(l.titolo), autori: formatta_(l.autori), copertina: formatta_(l.copertina), categoria: formatta_(l.categoria), stato: formatta_(l.stato) };
+  });
+  return { ok: true, nome: nome.split(" ")[0], prestiti: prestiti, preferiti: preferiti, oggi: formatta_(new Date()) };
+}
+
+// Cuore sulla scheda del libro: aggiunge o toglie il libro dai preferiti di quella chiave (tab Preferiti).
+function preferito_(d) {
+  const chiave = String(d.chiave || ""), id = String(d.id_libro || "").trim();
+  if (!/^[a-z0-9]{16,64}$/.test(chiave) || !/^L\d{4,}$/.test(id)) throw new Error("Richiesta non valida.");
+  const sh = tab_("Preferiti");
+  const righe = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, 2).getValues() : [];
+  const trovata = righe.findIndex(r => String(r[0]) === chiave && String(r[1]) === id);
+  if (d.attivo && trovata < 0) scriviRiga_("Preferiti", { chiave: chiave, id_libro: id, data: new Date() });
+  if (!d.attivo && trovata >= 0) sh.deleteRow(trovata + 2);
+  return { ok: true, attivo: !!d.attivo };
 }
 
 // ---- Area riservata: prestiti ------------------------------------------------------
@@ -566,39 +584,14 @@ function cartellaCopertine_() {
 }
 
 // ---- Copertine dal foglio -----------------------------------------------------------
-// Per i libri con ISBN e senza copertina prova Google Books, Open Library e Amazon e scrive l'indirizzo
-// trovato nella colonna "copertina"; segna la data in "copertina_cercata" così non riprova.
-// Lavora per 4 minuti e mezzo e si ferma: rilanciarla finché nel registro compare "finito".
-// Per riprovare un libro, svuotare la sua cella "copertina_cercata".
-function cercaCopertine() {
-  const inizio = Date.now();
-  const sh = tab_("Libri");
-  const testa = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(h => String(h).trim());
-  const c = n => { const i = testa.indexOf(n); if (i < 0) throw new Error("Manca la colonna " + n + ": esegui setup."); return i + 1; };
-  const cIsbn = c("isbn"), cCop = c("copertina"), cCerc = c("copertina_cercata");
-  const n = sh.getLastRow() - 1;
-  if (n < 1) return;
-  const isbn = sh.getRange(2, cIsbn, n).getValues(), cop = sh.getRange(2, cCop, n).getValues(), cerc = sh.getRange(2, cCerc, n).getValues();
-  let fatti = 0, trovate = 0;
-  for (let i = 0; i < n; i++) {
-    if (Date.now() - inizio > 270000) { console.log("Tempo scaduto: " + fatti + " controllati, " + trovate + " copertine trovate. Rilancia per continuare."); return; }
-    const k = normalizzaIsbn_(isbn[i][0]);
-    if (!k || cop[i][0] || cerc[i][0]) continue;
-    const url = copertinaPerIsbn_(k);
-    if (url) { sh.getRange(i + 2, cCop).setValue(url); trovate++; }
-    sh.getRange(i + 2, cCerc).setValue(new Date());
-    fatti++;
-  }
-  cacheSvuota_("catalogo");
-  console.log("finito: " + fatti + " controllati, " + trovate + " copertine trovate.");
-}
-
-// Per i libri SENZA ISBN: cerca la copertina per titolo e autore su Open Library e Google Books. Se la corrispondenza
-// è buona scrive la copertina e, come dato accessorio, l'ISBN dell'edizione trovata in "isbn_trovato" (non in "isbn":
-// è un'altra edizione, la copertina può essere diversa dalla copia fisica). Stessa logica a tempo di cercaCopertine: rilanciare fino a "finito".
+// UNA funzione per tutto. Per ogni libro senza copertina prova prima con l'ISBN (Google Books, Open Library, Amazon)
+// e poi per titolo e autore (Open Library, Google Books); se trova per titolo scrive anche l'ISBN dell'edizione
+// trovata in "isbn_trovato" (non in "isbn": è un'altra edizione, la copertina può differire dalla copia fisica).
+// Segna in "copertina_cercata" cosa ha provato, così non riprova. Lavora 4 minuti e mezzo e si ferma:
+// rilanciarla finché nel registro di esecuzione compare "finito".
 // Se Google risponde "troppe richieste" (429) si ferma: riprovare dopo qualche ora, o mettere una chiave API
 // di Google Books nelle proprietà dello script (GOOGLE_BOOKS_KEY).
-function cercaCopertinePerTitolo() {
+function cercaCopertine() {
   const inizio = Date.now();
   const sh = tab_("Libri");
   const testa = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(h => String(h).trim());
@@ -607,68 +600,130 @@ function cercaCopertinePerTitolo() {
   const n = sh.getLastRow() - 1;
   if (n < 1) return;
   const v = sh.getRange(2, 1, n, sh.getLastColumn()).getValues();
-  let fatti = 0, trovate = 0;
+  let fatti = 0, trovate = 0, daFare = 0;
   for (let i = 0; i < n; i++) {
-    if (Date.now() - inizio > 270000) { console.log("Tempo scaduto: " + fatti + " cercati, " + trovate + " trovati. Rilancia per continuare."); return; }
-    const r = v[i];
-    if (r[cIsbn - 1] || r[cCop - 1] || r[cCerc - 1] || !r[cTit - 1]) continue;
-    let esito;
-    try { esito = cercaPerTitolo_(String(r[cTit - 1]), String(r[cAut - 1] || "")); }
-    catch (e) { if (/429/.test(String(e))) { console.log("Google Books: troppe richieste. Riprova tra qualche ora. (" + fatti + " cercati, " + trovate + " trovati)"); return; } esito = null; }
-    if (esito) { sh.getRange(i + 2, cCop).setValue(esito.copertina); if (esito.isbn) sh.getRange(i + 2, cTrov).setValue(esito.isbn); trovate++; }
-    sh.getRange(i + 2, cCerc).setValue(new Date());
+    const r = v[i], k = normalizzaIsbn_(r[cIsbn - 1]), titolo = String(r[cTit - 1] || "").trim(), marca = r[cCerc - 1];
+    if (r[cCop - 1] || !titolo) continue;
+    // marcatore vecchio (solo data): con ISBN era stato provato solo l'ISBN, senza ISBN era già stato provato il titolo
+    const titoloFatto = /titolo/.test(String(marca)) || (marca instanceof Date && !k);
+    if (titoloFatto) continue;
+    daFare++;
+    if (Date.now() - inizio > 270000) { console.log("Tempo scaduto: " + fatti + " controllati, " + trovate + " copertine trovate. Rilancia per continuare."); return; }
+    let url = "", isbnTrovato = "";
+    if (k && !marca) url = copertinaPerIsbn_(k);
+    if (!url) {
+      try { const e = cercaPerTitolo_(titolo, String(r[cAut - 1] || "")); if (e) { url = e.copertina; isbnTrovato = e.isbn; } }
+      catch (e) { if (/429/.test(String(e))) { console.log("Google Books: troppe richieste. Riprova tra qualche ora, o imposta GOOGLE_BOOKS_KEY. (" + fatti + " controllati, " + trovate + " trovate)"); return; } }
+    }
+    if (url) { sh.getRange(i + 2, cCop).setValue(url); if (isbnTrovato && !k) sh.getRange(i + 2, cTrov).setValue(isbnTrovato); trovate++; }
+    sh.getRange(i + 2, cCerc).setValue((k ? "isbn+titolo " : "titolo ") + Utilities.formatDate(new Date(), FUSO, "dd/MM/yyyy HH:mm"));
     fatti++;
   }
   cacheSvuota_("catalogo");
-  console.log("finito: " + fatti + " cercati, " + trovate + " copertine trovate.");
+  console.log("finito: " + fatti + " controllati, " + trovate + " copertine trovate. Senza copertina restano " + (daFare - trovate) + " libri già cercati: per riprovarli esegui riprovaCopertine e poi di nuovo cercaCopertine.");
+}
+
+// Cancella il segno "già cercato" dei libri ancora senza copertina, così cercaCopertine li riprova
+// (utile dopo aver corretto titoli/autori nel foglio o aggiunto la chiave di Google Books).
+function riprovaCopertine() {
+  const sh = tab_("Libri");
+  const testa = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(h => String(h).trim());
+  const cCop = testa.indexOf("copertina") + 1, cCerc = testa.indexOf("copertina_cercata") + 1;
+  const n = sh.getLastRow() - 1;
+  if (n < 1 || !cCop || !cCerc) return;
+  const cop = sh.getRange(2, cCop, n).getValues(), cerc = sh.getRange(2, cCerc, n).getValues();
+  let azzerati = 0;
+  for (let i = 0; i < n; i++) if (!cop[i][0] && cerc[i][0]) { cerc[i][0] = ""; azzerati++; }
+  sh.getRange(2, cCerc, n).setValues(cerc);
+  console.log(azzerati + " libri da ricercare. Ora esegui cercaCopertine.");
+}
+
+// Per capire PERCHÉ un libro non si trova: prende i primi 12 libri senza copertina (o quelli con la cella
+// "copertina_cercata" uguale a "?" ) e scrive nel registro cosa hanno risposto le fonti e perché è stato scartato.
+// Non modifica il foglio.
+function diagnosiCopertine() {
+  const libri = leggiTab_("Libri").filter(l => l.titolo && !l.copertina);
+  const scelti = libri.filter(l => String(l.copertina_cercata).trim() === "?");
+  const lista = (scelti.length ? scelti : libri).slice(0, 12);
+  console.log("Senza copertina: " + libri.length + " libri. Ne provo " + lista.length + (scelti.length ? " (quelli segnati con ?)" : "") + ".\n");
+  lista.forEach(l => {
+    const righe = [l.id + " · " + l.titolo + " — " + (l.autori || "(senza autore)")];
+    const k = normalizzaIsbn_(l.isbn);
+    if (k) {
+      const u = copertinaPerIsbn_(k);
+      righe.push("  ISBN " + k + ": " + (u ? "trovata " + u : "nessuna copertina su Google Books, Open Library, Amazon"));
+    } else righe.push("  senza ISBN");
+    try {
+      const e = cercaPerTitolo_(String(l.titolo), String(l.autori || ""), righe);
+      righe.push(e ? "  → TROVATA " + e.copertina : "  → niente di buono");
+    } catch (err) { righe.push("  Google Books: " + err); }
+    console.log(righe.join("\n"));
+  });
 }
 
 // Confronto: tutte le parole "significative" del nostro titolo devono stare nel titolo trovato (o viceversa)
-// e il cognome del primo autore deve comparire tra gli autori trovati.
-function norm_(s) { return String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim(); }
-function parole_(s) { return norm_(s).split(" ").filter(w => w.length > 2 && ["the", "and", "del", "della", "dei", "degli", "delle", "con", "per", "una", "uno", "gli", "nel", "nella"].indexOf(w) < 0); }
-function corrisponde_(titolo, autori, tTrovato, aTrovati) {
-  const a = parole_(titolo.split(/[.:]/)[0]), b = parole_(tTrovato);
-  if (!a.length || !b.length) return false;
+// e il cognome del primo autore deve comparire tra gli autori trovati (bastano le prime 4 lettere: le
+// traslitterazioni variano). Chi chiama passa "diario" (un array) per sapere il motivo di uno scarto.
+function norm_(s) { return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim(); }
+function parole_(s) { return norm_(s).split(" ").filter(w => w.length > 2 && ["the", "and", "del", "della", "dei", "degli", "delle", "con", "per", "una", "uno", "gli", "nel", "nella", "vol"].indexOf(w) < 0); }
+// Titolo "base": la parte prima di due punti o punto (via sottotitoli e "Vol. 2"), se resta qualcosa di sensato
+function titoloBase_(t) { const p = String(t || "").split(/[.:]/)[0].trim(); return parole_(p).length >= 2 || parole_(t).length < 2 ? p : String(t || "").trim(); }
+function cognome_(autori) {
+  const primo = String(autori || "").split(/[,;]/)[0].trim();
+  if (!primo || /^aa\.?\s?vv/i.test(primo)) return "";
+  return norm_(primo).split(" ").filter(w => w.length > 1).pop() || "";
+}
+function corrisponde_(titolo, autori, tTrovato, aTrovati, diario) {
+  const a = parole_(titoloBase_(titolo)), b = parole_(tTrovato);
+  const scarta = m => { if (diario) diario.push("    scartato «" + tTrovato + "» (" + (aTrovati || []).join(", ") + "): " + m); return false; };
+  if (!a.length || !b.length) return scarta("titolo vuoto");
   const dentro = (x, y) => x.every(w => y.indexOf(w) >= 0);
-  // il titolo trovato deve contenere tutte le nostre parole; se è più lungo, al massimo del doppio (evita "Racconti" → "Racconti di Natale" con un solo termine)
-  if (!dentro(a, b) || b.length > a.length * 2 + 1) return false;
-  if (a.length === 1 && b.length > 1) return false;   // titoli di una parola sola: serve corrispondenza esatta
-  const primo = String(autori || "").split(",")[0].trim();
-  if (!primo || /^aa\.?\s?vv/i.test(primo)) return true;
-  const cognome = norm_(primo).split(" ").filter(Boolean).pop();
-  return !cognome || norm_(aTrovati.join(" ")).indexOf(cognome) >= 0;
+  if (!dentro(a, b)) return scarta("non contiene tutte le parole del nostro titolo");
+  if (b.length > a.length * 2 + 1) return scarta("titolo troppo diverso");
+  if (a.length === 1 && b.length > 1) return scarta("titolo di una parola: serve uguale");
+  const cognome = cognome_(autori);
+  if (!cognome) return true;
+  if (norm_(aTrovati.join(" ")).indexOf(cognome.slice(0, 4)) < 0) return scarta("autore diverso da " + cognome);
+  return true;
 }
 
-function cercaPerTitolo_(titolo, autori) {
-  const primo = String(autori || "").split(",")[0].trim();
-  const cognome = /^aa\.?\s?vv/i.test(primo) ? "" : norm_(primo).split(" ").filter(Boolean).pop() || "";
+// Cerca per titolo e autore: Open Library, poi Google Books (prima una ricerca stretta, poi una larga).
+function cercaPerTitolo_(titolo, autori, diario) {
+  const cognome = cognome_(autori), base = titoloBase_(titolo);
   const key = PropertiesService.getScriptProperties().getProperty("GOOGLE_BOOKS_KEY");
+  const nota = m => { if (diario) diario.push("  " + m); };
   // 1) Open Library (senza limiti di quota)
-  const u = "https://openlibrary.org/search.json?title=" + encodeURIComponent(titolo.split(/[.:]/)[0].trim()) + (cognome ? "&author=" + encodeURIComponent(cognome) : "") + "&limit=5&fields=title,author_name,cover_i,isbn,language";
+  const u = "https://openlibrary.org/search.json?title=" + encodeURIComponent(base) + (cognome ? "&author=" + encodeURIComponent(cognome) : "") + "&limit=5&fields=title,author_name,cover_i,isbn,language";
   try {
     const o = UrlFetchApp.fetch(u, { muteHttpExceptions: true });
     if (o.getResponseCode() === 200) {
-      for (const d of JSON.parse(o.getContentText()).docs || []) {
-        if (!d.cover_i) continue;
-        if (!corrisponde_(titolo, autori, d.title || "", d.author_name || [])) continue;
+      const docs = JSON.parse(o.getContentText()).docs || [];
+      nota("Open Library: " + docs.length + " risultati per «" + base + "»" + (cognome ? " + " + cognome : ""));
+      for (const d of docs) {
+        if (!d.cover_i) { nota("    «" + (d.title || "") + "» senza copertina"); continue; }
+        if (!corrisponde_(titolo, autori, d.title || "", d.author_name || [], diario)) continue;
         const isbn = (d.isbn || []).find(x => /^97[89]\d{10}$/.test(x)) || "";
         return { copertina: "https://covers.openlibrary.org/b/id/" + d.cover_i + "-M.jpg", isbn: isbn };
       }
-    }
-  } catch (e) {}
-  // 2) Google Books (quota limitata senza chiave: una richiesta ogni mezzo secondo)
-  Utilities.sleep(500);
-  let q = "intitle:" + encodeURIComponent('"' + titolo.split(/[.:]/)[0].trim() + '"') + (cognome ? "+inauthor:" + encodeURIComponent(cognome) : "");
-  const r = UrlFetchApp.fetch("https://www.googleapis.com/books/v1/volumes?q=" + q + "&maxResults=5&langRestrict=it" + (key ? "&key=" + key : ""), { muteHttpExceptions: true });
-  if (r.getResponseCode() === 429) throw new Error("429");
-  if (r.getResponseCode() === 200) {
+    } else nota("Open Library: risposta " + o.getResponseCode());
+  } catch (e) { nota("Open Library: errore " + e); }
+  // 2) Google Books: stretta (titolo esatto, autore, italiano) poi larga (parole libere, qualunque lingua)
+  const ricerche = [
+    "intitle:" + encodeURIComponent('"' + base + '"') + (cognome ? "+inauthor:" + encodeURIComponent(cognome) : "") + "&langRestrict=it",
+    encodeURIComponent(base + (cognome ? " " + cognome : ""))
+  ];
+  for (const q of ricerche) {
+    Utilities.sleep(500);
+    const r = UrlFetchApp.fetch("https://www.googleapis.com/books/v1/volumes?q=" + q + "&maxResults=8&printType=books" + (key ? "&key=" + key : ""), { muteHttpExceptions: true });
+    if (r.getResponseCode() === 429) throw new Error("429 troppe richieste");
+    if (r.getResponseCode() !== 200) { nota("Google Books: risposta " + r.getResponseCode()); continue; }
     const items = JSON.parse(r.getContentText()).items || [];
+    nota("Google Books (" + (q.indexOf("intitle") === 0 ? "stretta" : "larga") + "): " + items.length + " risultati");
     for (const it of items) {
       const vi = it.volumeInfo || {};
       const img = vi.imageLinks && (vi.imageLinks.thumbnail || vi.imageLinks.smallThumbnail);
-      if (!img) continue;
-      if (!corrisponde_(titolo, autori, (vi.title || "") + " " + (vi.subtitle || ""), vi.authors || [])) continue;
+      if (!img) { nota("    «" + (vi.title || "") + "» senza copertina"); continue; }
+      if (!corrisponde_(titolo, autori, (vi.title || "") + " " + (vi.subtitle || ""), vi.authors || [], diario)) continue;
       const id13 = (vi.industryIdentifiers || []).find(x => x.type === "ISBN_13");
       return { copertina: img.replace(/^http:/, "https:").replace("&edge=curl", ""), isbn: id13 ? id13.identifier : "" };
     }
@@ -742,7 +797,7 @@ function setup() {
   const libri = ss.getSheetByName("Libri");
   colonna_(libri, "isbn").setNumberFormat("@");
   colonna_(libri, "data_inserimento").setNumberFormat("dd/mm/yyyy");
-  colonna_(libri, "copertina_cercata").setNumberFormat("dd/mm/yyyy hh:mm");
+  colonna_(libri, "copertina_cercata").setNumberFormat("@");
   colonna_(libri, "categoria").setDataValidation(
     SpreadsheetApp.newDataValidation().requireValueInRange(cfg.getRange("A2:A"), true).setAllowInvalid(false).build());
   colonna_(libri, "stato").setDataValidation(menu_(STATI_LIBRO));
@@ -758,6 +813,7 @@ function setup() {
 
   colonna_(ss.getSheetByName("Desideri"), "stato").setDataValidation(menu_(STATI_DESIDERIO));
   colonna_(ss.getSheetByName("Log"), "timestamp").setNumberFormat("dd/mm/yyyy hh:mm:ss");
+  colonna_(ss.getSheetByName("Preferiti"), "data").setNumberFormat("dd/mm/yyyy hh:mm");
 
   // via il "Foglio1" vuoto creato con il file
   ss.getSheets().forEach(sh => {
