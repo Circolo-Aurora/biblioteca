@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
 <meta name="robots" content="noindex">
 <title>Area riservata — Biblioteca del Circolo ARCI Aurora</title>
-<link rel="manifest" href="gestione.webmanifest">
+<link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#f3e5e3">
 <link rel="icon" href="assets/icone/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/icone/favicon-16.png" sizes="16x16" type="image/png">
@@ -49,7 +49,8 @@ h2{font:400 2rem/1.05 var(--mano);margin:0 0 6px}
 .schede::-webkit-scrollbar{display:none}
 .schede button[data-scheda]{flex:none;border:1.5px solid var(--inchiostro);background:transparent;border-radius:8px;padding:5px 12px 6px;font:400 1.15rem/1.2 var(--mano);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .schede button[aria-pressed="true"]{background:var(--inchiostro);color:var(--pagina)}
-.schede .esci{margin-left:auto;flex:none}
+.schede .esci{margin-left:auto;flex:none;color:var(--inchiostro);text-decoration:underline}
+.piede-righe{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center}
 .pallino{min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--rosso);color:#fff;font:700 .78rem/20px var(--testo);text-align:center}
 .schede button[aria-pressed="true"] .pallino{background:var(--pagina);color:var(--rosso)}
 
@@ -102,7 +103,8 @@ form{display:grid;gap:12px}
 .isbn-riga{display:flex;gap:8px}
 .isbn-riga input{font-size:1.25rem;letter-spacing:.04em;padding:12px 14px}
 .aiuto{margin:-4px 0 0;font-size:.88rem;color:var(--grigio)}
-.scansiona{display:flex;align-items:center;justify-content:center;gap:10px;width:100%}
+.scansiona{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px 20px;font-size:1.05rem}
+.oppure-isbn{margin-top:4px}
 .scansiona svg{width:24px;height:24px}
 
 /* scanner a tutto schermo */
@@ -186,18 +188,6 @@ form{display:grid;gap:12px}
 
 <main class="contenitore">
 
-  <!-- invito a installare l'app "Gestione libri" -->
-  <div class="installa-box" id="installa-box" hidden>
-    <img src="assets/icone/gestione-192.png" alt="">
-    <div>
-      <p id="installa-testo">Puoi avere questa pagina come app sul telefono, con la sua icona.</p>
-      <div class="installa-azioni">
-        <button class="bottone piccolo" type="button" id="installa" hidden>Installa “Gestione libri”</button>
-        <button class="link" type="button" id="installa-chiudi">Non ora</button>
-      </div>
-    </div>
-  </div>
-
   <!-- accesso -->
   <section class="pannello" id="accesso">
     <h2>Area riservata</h2>
@@ -218,7 +208,7 @@ form{display:grid;gap:12px}
     <button type="button" data-scheda="aggiungi">Aggiungi</button>
     <button type="button" data-scheda="modifica">Modifica</button>
     <button type="button" data-scheda="desideri">Desideri <span class="pallino" id="n-desideri" hidden></span></button>
-    <button class="link esci" type="button" id="esci">Esci</button>
+    <a class="link esci" href="./">Catalogo</a>
   </nav>
 
   <!-- PRESTITI -->
@@ -260,15 +250,15 @@ form{display:grid;gap:12px}
     </div>
 
     <form class="isbn solo-aggiunta" id="form-isbn" novalidate>
-      <label for="isbn">ISBN</label>
-      <div class="isbn-riga">
-        <input id="isbn" inputmode="numeric" autocomplete="off" placeholder="978…" enterkeyhint="search">
-        <button class="bottone" type="submit">Cerca</button>
-      </div>
-      <button class="bottone chiaro scansiona" type="button" id="scansiona" hidden>
+      <button class="bottone scansiona" type="button" id="scansiona" hidden>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8v8M10 8v8M13 8v8M17 8v8"/></svg>
         Scansiona il codice a barre
       </button>
+      <label for="isbn" class="oppure-isbn">oppure scrivi l'ISBN</label>
+      <div class="isbn-riga">
+        <input id="isbn" inputmode="numeric" autocomplete="off" placeholder="978…" enterkeyhint="search">
+        <button class="bottone chiaro" type="submit">Cerca</button>
+      </div>
       <p class="aiuto">Le cifre sotto il codice a barre, con o senza trattini. Se il libro non ha ISBN, compila direttamente la scheda.</p>
       <p class="esito" id="esito-isbn" aria-live="polite"></p>
       <div class="da-collana">
@@ -349,7 +339,7 @@ form{display:grid;gap:12px}
   </div>
 </div>
 
-<footer class="piede"><div class="contenitore"><a href="./">Torna al catalogo</a></div></footer>
+<footer class="piede"><div class="contenitore piede-righe"><a href="./">Torna al catalogo</a> <button class="link" type="button" id="esci">Esci e dimentica la password su questo telefono</button></div></footer>
 
 <script>
 /* ================= IMPOSTAZIONI ================= */
@@ -426,8 +416,11 @@ async function entra(password, silenzioso) {
   const r = await invia({ azione: "login", password });
   fine();
   if (!r.ok) {
-    memoria.cancella();
-    esito.className = "esito errore"; esito.textContent = r.errore || "Accesso non riuscito.";
+    const sbagliata = /password/i.test(r.errore || "");
+    if (sbagliata) memoria.cancella();   // un problema di rete non deve far perdere la password salvata
+    esito.className = "esito errore";
+    esito.textContent = sbagliata ? r.errore : (r.errore || "Il server non risponde") + (silenzioso ? ". Premi Entra per riprovare." : "");
+    if (silenzioso) accesso.password.value = password;
     accesso.password.focus();
     return;
   }
@@ -440,7 +433,6 @@ async function entra(password, silenzioso) {
   vaiAScheda(localStorage.getItem("biblioteca-scheda") || "prestiti");
   esito.textContent = "";
   disegnaAnteprima();
-  $("#isbn").focus();
   if (!$("#scansiona").hidden) preparaRilevatore().catch(() => {});   // il lettore si carica in anticipo
 }
 
@@ -472,7 +464,7 @@ function vaiAScheda(nome) {
   if (nome === "prestiti") caricaPrestiti();
   if (nome === "desideri") caricaDesideri();
   if (nome === "modifica") { caricaCatalogo(); $("#cerca-cat").focus(); }
-  if (nome === "aggiungi") $("#isbn").focus();
+  if (nome === "aggiungi" && !$("#scansiona").hidden) $("#scansiona").focus({ preventScroll: true });   // niente tastiera: prima la scansione
 }
 document.querySelector(".schede").addEventListener("click", e => { const b = e.target.closest("button[data-scheda]"); if (b) vaiAScheda(b.dataset.scheda); });
 
@@ -1094,7 +1086,7 @@ async function salva(forza) {
     $("#esito-isbn").textContent = `«${dati.titolo}» salvato nel catalogo (${r.id}). Puoi inserire il prossimo.`;
     scrollTo({ top: 0, behavior: "smooth" });
     if (dati.isbn) isbnInCatalogo.add(dati.isbn);
-    if (!$("#collana-box").hidden) { disegnaVolumi(); $("#volume").focus(); } else $("#isbn").focus();
+    if (!$("#collana-box").hidden) { disegnaVolumi(); $("#volume").focus(); }
   } else if (r.duplicato) {
     esito.className = "esito errore";
     esito.innerHTML = `${esc(r.errore)}<br><button class="bottone chiaro piccolo" type="button" id="forza">Aggiungilo comunque</button>`;
@@ -1108,35 +1100,6 @@ libro.addEventListener("submit", e => { e.preventDefault(); salva(false); });
 
 /* ---------- app installabile ("Gestione libri") ---------- */
 if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
-// Riquadro in cima alla pagina: su Android/computer con il pulsante "Installa", su iPhone con le istruzioni.
-// Non compare se la pagina è già aperta come app o se è stato chiuso con "Non ora".
-let invitoInstalla = null;
-const comeApp = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
-let invitoChiuso = false;
-try { invitoChiuso = localStorage.getItem("biblioteca-invito-chiuso") === "1"; } catch {}
-function mostraInvito(testo, conBottone) {
-  if (comeApp || invitoChiuso) return;
-  $("#installa-testo").textContent = testo;
-  $("#installa").hidden = !conBottone;
-  $("#installa-box").hidden = false;
-}
-addEventListener("beforeinstallprompt", e => {
-  e.preventDefault(); invitoInstalla = e;
-  mostraInvito("Puoi avere questa pagina come app sul telefono: icona “Gestione libri”, si apre direttamente qui.", true);
-});
-addEventListener("appinstalled", () => { invitoInstalla = null; $("#installa-box").hidden = true; });
-$("#installa").addEventListener("click", async () => {
-  if (!invitoInstalla) return;
-  invitoInstalla.prompt();
-  await invitoInstalla.userChoice;
-  invitoInstalla = null; $("#installa-box").hidden = true;
-});
-$("#installa-chiudi").addEventListener("click", () => {
-  $("#installa-box").hidden = true;
-  try { localStorage.setItem("biblioteca-invito-chiuso", "1"); } catch {}
-});
-const suIphone = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-if (suIphone) mostraInvito("Per averla come app su iPhone: apri questa pagina in Safari, tocca Condividi (il quadrato con la freccia) e poi «Aggiungi alla schermata Home».", false);
 
 /* ---------- avvio: se la password è già stata data in questa scheda del browser, si entra direttamente ---------- */
 const salvata = memoria.leggi();
