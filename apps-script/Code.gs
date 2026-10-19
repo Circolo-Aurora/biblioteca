@@ -585,10 +585,11 @@ function cartellaCopertine_() {
 
 // ---- Copertine dal foglio -----------------------------------------------------------
 // UNA funzione per tutto. Per ogni libro senza copertina prova prima con l'ISBN (Google Books, Open Library, Amazon)
-// e poi per titolo e autore (Open Library, Google Books); se trova per titolo scrive anche l'ISBN dell'edizione
+// e poi per titolo e autore (Google Books, poi Open Library); se trova per titolo scrive anche l'ISBN dell'edizione
 // trovata in "isbn_trovato" (non in "isbn": è un'altra edizione, la copertina può differire dalla copia fisica).
-// Segna in "copertina_cercata" cosa ha provato, così non riprova. Lavora 4 minuti e mezzo e si ferma:
-// rilanciarla finché nel registro di esecuzione compare "finito".
+// Segna in "copertina_cercata" cosa ha provato, così non riprova. Lavora 4 minuti e mezzo, salva, e si
+// riprogramma da sola dopo un minuto finché non ha finito: si lancia UNA volta dall'editor e si segue
+// l'avanzamento nel tab Log (riga "copertine"). Per fermarla prima: fermaCopertine.
 // Se Google risponde "troppe richieste" (429) si ferma: riprovare dopo qualche ora, o mettere una chiave API
 // di Google Books nelle proprietà dello script (GOOGLE_BOOKS_KEY).
 function cercaCopertine() {
@@ -600,27 +601,44 @@ function cercaCopertine() {
   const n = sh.getLastRow() - 1;
   if (n < 1) return;
   const v = sh.getRange(2, 1, n, sh.getLastColumn()).getValues();
-  let fatti = 0, trovate = 0, daFare = 0;
+  // le scritture si accumulano e si salvano a blocchi (cella per cella era lentissimo)
+  const cop = v.map(r => [r[cCop - 1]]), cerc = v.map(r => [r[cCerc - 1]]), trov = v.map(r => [r[cTrov - 1]]);
+  const salva = () => { sh.getRange(2, cCop, n).setValues(cop); sh.getRange(2, cCerc, n).setValues(cerc); sh.getRange(2, cTrov, n).setValues(trov); };
+  let fatti = 0, trovate = 0, restano = 0;
+  const chiudi = msg => { salva(); cacheSvuota_("catalogo"); console.log(msg); log_("copertine", "", msg); };
   for (let i = 0; i < n; i++) {
-    const r = v[i], k = normalizzaIsbn_(r[cIsbn - 1]), titolo = String(r[cTit - 1] || "").trim(), marca = r[cCerc - 1];
-    if (r[cCop - 1] || !titolo) continue;
+    const r = v[i], k = normalizzaIsbn_(r[cIsbn - 1]), titolo = String(r[cTit - 1] || "").trim(), marca = cerc[i][0];
+    if (cop[i][0] || !titolo) continue;
     // marcatore vecchio (solo data): con ISBN era stato provato solo l'ISBN, senza ISBN era già stato provato il titolo
     const titoloFatto = /titolo/.test(String(marca)) || (marca instanceof Date && !k);
-    if (titoloFatto) continue;
-    daFare++;
-    if (Date.now() - inizio > 270000) { console.log("Tempo scaduto: " + fatti + " controllati, " + trovate + " copertine trovate. Rilancia per continuare."); return; }
+    if (titoloFatto) { restano++; continue; }
+    if (Date.now() - inizio > 270000) {
+      chiudi("Pausa: " + fatti + " controllati, " + trovate + " copertine trovate. Riparte da sola tra un minuto.");
+      riprogramma_("cercaCopertine", 1);
+      return;
+    }
     let url = "", isbnTrovato = "";
     if (k && !marca) url = copertinaPerIsbn_(k);
     if (!url) {
       try { const e = cercaPerTitolo_(titolo, String(r[cAut - 1] || "")); if (e) { url = e.copertina; isbnTrovato = e.isbn; } }
-      catch (e) { if (/429/.test(String(e))) { console.log("Google Books: troppe richieste. Riprova tra qualche ora, o imposta GOOGLE_BOOKS_KEY. (" + fatti + " controllati, " + trovate + " trovate)"); return; } }
+      catch (e) { if (/429/.test(String(e))) { chiudi("Google Books: troppe richieste. Riprova tra qualche ora, o imposta GOOGLE_BOOKS_KEY. (" + fatti + " controllati, " + trovate + " trovate)"); fermaCopertine(); return; } }
     }
-    if (url) { sh.getRange(i + 2, cCop).setValue(url); if (isbnTrovato && !k) sh.getRange(i + 2, cTrov).setValue(isbnTrovato); trovate++; }
-    sh.getRange(i + 2, cCerc).setValue((k ? "isbn+titolo " : "titolo ") + Utilities.formatDate(new Date(), FUSO, "dd/MM/yyyy HH:mm"));
+    if (url) { cop[i][0] = url; if (isbnTrovato && !k) trov[i][0] = isbnTrovato; trovate++; } else restano++;
+    cerc[i][0] = (k ? "isbn+titolo " : "titolo ") + Utilities.formatDate(new Date(), FUSO, "dd/MM/yyyy HH:mm");
     fatti++;
+    if (fatti % 25 === 0) salva();
   }
-  cacheSvuota_("catalogo");
-  console.log("finito: " + fatti + " controllati, " + trovate + " copertine trovate. Senza copertina restano " + (daFare - trovate) + " libri già cercati: per riprovarli esegui riprovaCopertine e poi di nuovo cercaCopertine.");
+  fermaCopertine();
+  chiudi("finito: " + fatti + " controllati, " + trovate + " copertine trovate. Senza copertina restano " + restano + " libri già cercati: per riprovarli esegui riprovaCopertine e poi di nuovo cercaCopertine.");
+}
+
+// Trigger a tempo per continuare da sola; fermaCopertine li toglie (si può eseguire anche a mano per interrompere).
+function riprogramma_(nome, minuti) {
+  fermaCopertine();
+  ScriptApp.newTrigger(nome).timeBased().after(minuti * 60 * 1000).create();
+}
+function fermaCopertine() {
+  ScriptApp.getProjectTriggers().forEach(t => { if (t.getHandlerFunction() === "cercaCopertine") ScriptApp.deleteTrigger(t); });
 }
 
 // Cancella il segno "già cercato" dei libri ancora senza copertina, così cercaCopertine li riprova
@@ -695,34 +713,19 @@ function corrisponde_(titolo, autori, tTrovato, aTrovati, diario) {
   return scarta(aTrovati.length ? "autore diverso da " + cognome : "fonte senza autore e titolo non identico");
 }
 
-// Cerca per titolo e autore: Open Library, poi Google Books (prima una ricerca stretta, poi una larga).
+// Cerca per titolo e autore: Google Books (prima una ricerca stretta, poi una larga), poi Open Library.
 function cercaPerTitolo_(titolo, autori, diario) {
   const cognome = cognome_(autori), base = titoloBase_(titolo);
   const key = PropertiesService.getScriptProperties().getProperty("GOOGLE_BOOKS_KEY");
   const nota = m => { if (diario) diario.push("  " + m); };
-  // 1) Open Library (senza limiti di quota)
-  const u = "https://openlibrary.org/search.json?title=" + encodeURIComponent(base) + (cognome ? "&author=" + encodeURIComponent(cognome) : "") + "&limit=5&fields=title,author_name,cover_i,isbn,language";
-  try {
-    const o = UrlFetchApp.fetch(u, { muteHttpExceptions: true });
-    if (o.getResponseCode() === 200) {
-      const docs = JSON.parse(o.getContentText()).docs || [];
-      nota("Open Library: " + docs.length + " risultati per «" + base + "»" + (cognome ? " + " + cognome : ""));
-      for (const d of docs) {
-        if (!d.cover_i) { nota("    «" + (d.title || "") + "» senza copertina"); continue; }
-        if (!corrisponde_(titolo, autori, d.title || "", d.author_name || [], diario)) continue;
-        const isbn = (d.isbn || []).find(x => /^97[89]\d{10}$/.test(x)) || "";
-        return { copertina: "https://covers.openlibrary.org/b/id/" + d.cover_i + "-M.jpg", isbn: isbn };
-      }
-    } else nota("Open Library: risposta " + o.getResponseCode());
-  } catch (e) { nota("Open Library: errore " + e); }
-  // 2) Google Books: stretta (titolo esatto, autore, italiano) poi larga (parole libere, qualunque lingua).
+  // 1) Google Books: stretta (titolo esatto, autore, italiano) poi larga (parole libere, qualunque lingua).
   //    country=IT è obbligatorio dai server di Apps Script, altrimenti 403 "Cannot determine user location".
   const ricerche = [
     "intitle:" + encodeURIComponent('"' + base + '"') + (cognome ? "+inauthor:" + encodeURIComponent(cognome) : "") + "&langRestrict=it",
     encodeURIComponent(base + (cognome ? " " + cognome : ""))
   ];
   for (const q of ricerche) {
-    Utilities.sleep(500);
+    Utilities.sleep(key ? 150 : 500);
     const r = googleBooks_("https://www.googleapis.com/books/v1/volumes?q=" + q + "&maxResults=8&printType=books&country=IT" + (key ? "&key=" + key : ""));
     if (r.getResponseCode() === 429) throw new Error("429 troppe richieste");
     if (r.getResponseCode() !== 200) {
@@ -742,14 +745,29 @@ function cercaPerTitolo_(titolo, autori, diario) {
       return { copertina: img.replace(/^http:/, "https:").replace("&edge=curl", ""), isbn: id13 ? id13.identifier : "" };
     }
   }
+  // 2) Open Library (lenta e con poche copertine italiane: solo se Google non ha trovato niente)
+  const u = "https://openlibrary.org/search.json?title=" + encodeURIComponent(base) + (cognome ? "&author=" + encodeURIComponent(cognome) : "") + "&limit=5&fields=title,author_name,cover_i,isbn,language";
+  try {
+    const o = UrlFetchApp.fetch(u, { muteHttpExceptions: true });
+    if (o.getResponseCode() === 200) {
+      const docs = JSON.parse(o.getContentText()).docs || [];
+      nota("Open Library: " + docs.length + " risultati per «" + base + "»" + (cognome ? " + " + cognome : ""));
+      for (const d of docs) {
+        if (!d.cover_i) { nota("    «" + (d.title || "") + "» senza copertina"); continue; }
+        if (!corrisponde_(titolo, autori, d.title || "", d.author_name || [], diario)) continue;
+        const isbn = (d.isbn || []).find(x => /^97[89]\d{10}$/.test(x)) || "";
+        return { copertina: "https://covers.openlibrary.org/b/id/" + d.cover_i + "-M.jpg", isbn: isbn };
+      }
+    } else nota("Open Library: risposta " + o.getResponseCode());
+  } catch (e) { nota("Open Library: errore " + e); }
   return null;
 }
 
-// Google Books dai server di Apps Script risponde spesso 503 "temporarily unavailable" a caso: si riprova fino a 3 volte.
+// Google Books dai server di Apps Script risponde spesso 503 "temporarily unavailable" a caso: si riprova una volta.
 function googleBooks_(url) {
   let r;
-  for (let t = 0; t < 3; t++) {
-    if (t) Utilities.sleep(800 * t);
+  for (let t = 0; t < 2; t++) {
+    if (t) Utilities.sleep(400);
     r = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
     if (r.getResponseCode() !== 503) break;
   }
