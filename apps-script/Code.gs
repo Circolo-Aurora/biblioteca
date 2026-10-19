@@ -715,7 +715,7 @@ function cercaPerTitolo_(titolo, autori, diario) {
   ];
   for (const q of ricerche) {
     Utilities.sleep(500);
-    const r = UrlFetchApp.fetch("https://www.googleapis.com/books/v1/volumes?q=" + q + "&maxResults=8&printType=books&country=IT" + (key ? "&key=" + key : ""), { muteHttpExceptions: true });
+    const r = googleBooks_("https://www.googleapis.com/books/v1/volumes?q=" + q + "&maxResults=8&printType=books&country=IT" + (key ? "&key=" + key : ""));
     if (r.getResponseCode() === 429) throw new Error("429 troppe richieste");
     if (r.getResponseCode() !== 200) {
       let perche = ""; try { perche = JSON.parse(r.getContentText()).error.message; } catch (e) {}
@@ -737,6 +737,17 @@ function cercaPerTitolo_(titolo, autori, diario) {
   return null;
 }
 
+// Google Books dai server di Apps Script risponde spesso 503 "temporarily unavailable" a caso: si riprova fino a 3 volte.
+function googleBooks_(url) {
+  let r;
+  for (let t = 0; t < 3; t++) {
+    if (t) Utilities.sleep(800 * t);
+    r = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    if (r.getResponseCode() !== 503) break;
+  }
+  return r;
+}
+
 function copertinaPerIsbn_(isbn) {
   const prova = (url, minimo) => {
     try {
@@ -746,7 +757,7 @@ function copertinaPerIsbn_(isbn) {
   };
   try {
     const key = PropertiesService.getScriptProperties().getProperty("GOOGLE_BOOKS_KEY");
-    const r = UrlFetchApp.fetch("https://www.googleapis.com/books/v1/volumes?q=isbn:" + isbn + "&maxResults=1&country=IT" + (key ? "&key=" + key : ""), { muteHttpExceptions: true });
+    const r = googleBooks_("https://www.googleapis.com/books/v1/volumes?q=isbn:" + isbn + "&maxResults=1&country=IT" + (key ? "&key=" + key : ""));
     const v = r.getResponseCode() === 200 ? (JSON.parse(r.getContentText()).items || [])[0] : null;
     const img = v && v.volumeInfo && v.volumeInfo.imageLinks && (v.volumeInfo.imageLinks.thumbnail || v.volumeInfo.imageLinks.smallThumbnail);
     if (img) return img.replace(/^http:/, "https:").replace("&edge=curl", "");
