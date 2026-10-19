@@ -35,6 +35,7 @@ body{margin:0;background:var(--rosa);color:var(--inchiostro);font:400 1rem/1.5 v
 img{max-width:100%;display:block}
 button,input,select{font:inherit;color:inherit}
 :focus-visible{outline:3px solid var(--rosso);outline-offset:2px}
+[hidden]{display:none !important}
 .contenitore{max-width:1080px;margin:0 auto;padding:0 16px}
 
 /* ---------- barra in alto (resta ferma scorrendo) ---------- */
@@ -69,18 +70,24 @@ button,input,select{font:inherit;color:inherit}
 .riga h2{display:flex;align-items:center;gap:8px;margin:0 0 10px;font:400 1.3rem/1.1 var(--mano)}
 .riga h2 small{font:400 .88rem/1 var(--testo);color:var(--grigio);margin-left:2px}
 .riga h2 a{margin-left:auto;font:400 .95rem/1 var(--testo);color:var(--inchiostro);white-space:nowrap}
-.riga ul{list-style:none;margin:0 -16px;padding:4px 16px 8px;display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.riga ul{list-style:none;margin:0 -16px;padding:4px 16px 8px;display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x proximity;scroll-padding-inline:16px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .riga ul::-webkit-scrollbar{display:none}
 .riga li{flex:0 0 31%;max-width:150px;scroll-snap-align:start}
 @media (min-width:600px){.riga li{flex-basis:132px}}
 .riga .ancora{display:flex;align-items:center;justify-content:center;text-align:center;aspect-ratio:2/3;border:1.5px dashed var(--inchiostro);border-radius:2px 5px 5px 2px;
   font:400 1.1rem/1.2 var(--mano);color:var(--inchiostro);text-decoration:none;padding:10px;background:transparent}
-@media (min-width:760px){.riga ul{margin:0;padding:4px 0 8px}}
+@media (min-width:760px){.riga ul{margin:0;padding:4px 0 8px;scroll-padding-inline:0}}
 
 /* ---------- risultati ---------- */
-.testa-risultati{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;padding-top:14px}
+.testa-risultati{padding-top:14px}
 .indietro{border:0;background:none;padding:0;cursor:pointer;color:var(--grigio);text-decoration:underline;font-size:.95rem}
-.titolo-risultati{margin:0;font:400 1.7rem/1.1 var(--mano);flex-basis:100%}
+.titolo-risultati{margin:6px 0 2px;font:400 2.1rem/1.05 var(--mano)}
+.titolo-risultati small{font:400 1rem/1 var(--testo);color:var(--grigio);margin-left:8px}
+.scaffali{display:flex;gap:8px;overflow-x:auto;padding:10px 16px 12px;margin:0 -16px;scrollbar-width:none;scroll-padding-inline:16px}
+.scaffali::-webkit-scrollbar{display:none}
+.scaffali button{flex:none;border:1.5px solid var(--inchiostro);background:transparent;border-radius:8px;padding:3px 12px 4px;font:400 1.1rem/1.3 var(--mano);cursor:pointer;white-space:nowrap}
+.scaffali button[aria-pressed="true"]{background:var(--inchiostro);color:var(--pagina)}
+@media (min-width:760px){.scaffali{flex-wrap:wrap;overflow:visible;margin:0;padding:10px 0 12px}}
 
 .barra{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;padding:8px 0 14px;border-bottom:1.5px solid var(--rosa-scuro)}
 .barra label{display:inline-flex;align-items:center;gap:8px}
@@ -228,6 +235,7 @@ form.richiesta .azioni [type="submit"]{flex:1;max-width:320px}
     <button class="indietro" type="button" id="indietro">← Tutti gli scaffali</button>
     <h2 class="titolo-risultati" id="titolo-risultati"></h2>
   </div>
+  <nav class="scaffali" id="scaffali" aria-label="Scaffali"></nav>
   <div class="barra">
     <label class="interruttore"><input type="checkbox" id="disponibili"> Solo disponibili</label>
     <select id="ordine" aria-label="Ordina">
@@ -434,9 +442,14 @@ function disegna() {
   $("#righe").hidden = !home;
   $("#risultati").hidden = home;
   if (home) { disegnaRighe(); $("#messaggio").hidden = true; return; }
-  $("#titolo-risultati").textContent = filtro.categoria ? filtro.categoria : `Risultati per «${filtro.q}»`;
   const r = risultati();
   const disp = r.filter(l => l.stato === "disponibile").length;
+  const nScaffale = filtro.categoria ? LIBRI.filter(l => l.categoria === filtro.categoria).length : 0;
+  $("#titolo-risultati").innerHTML = filtro.q
+    ? `Risultati per «${esc(filtro.q)}»${filtro.categoria ? ` <small>in ${esc(filtro.categoria)}</small>` : ""}`
+    : `${esc(filtro.categoria)} <small>${nScaffale} libri</small>`;
+  $("#scaffali").innerHTML = ["", ...CATEGORIE].map(c =>
+    `<button type="button" data-cat="${esc(c)}" aria-pressed="${filtro.categoria === c}">${c ? esc(c) : "Tutti"}</button>`).join("");
   $("#conteggio").textContent = r.length === 1 ? "1 libro" : `${r.length} libri, ${disp} disponibili`;
   $("#libri").innerHTML = r.map(tessera).join("");
   if (r.length) $("#messaggio").hidden = true;
@@ -449,20 +462,31 @@ function messaggio(titolo, testo) {
   $("#messaggio").hidden = false;
 }
 
-$("#q").addEventListener("input", e => { filtro.q = e.target.value.trim(); $("#svuota").hidden = !e.target.value; disegna(); });
+$("#q").addEventListener("input", e => {
+  const prima = filtro.q;
+  filtro.q = e.target.value.trim(); $("#svuota").hidden = !e.target.value;
+  if (!prima && filtro.q && filtro.categoria) { filtro.categoria = ""; history.replaceState(null, "", location.pathname + location.search); }   // una ricerca nuova parte da tutto il catalogo
+  disegna();
+});
 $("#svuota").addEventListener("click", () => { $("#q").value = ""; filtro.q = ""; $("#svuota").hidden = true; $("#q").focus(); disegna(); });
 function vaiAScaffale(cat) {
   filtro.categoria = cat;
   disegna();
   if (cat) history.pushState(null, "", "#scaffale=" + encodeURIComponent(cat));
   else history.replaceState(null, "", location.pathname + location.search);
-  if (cat) $("#risultati").scrollIntoView({ block: "start", behavior: "smooth" });
+  if (cat) scrollTo({ top: 0, behavior: "auto" });
 }
 $("#righe").addEventListener("click", e => {
   const a = e.target.closest("a[data-cat]"); if (!a) return;
   e.preventDefault(); vaiAScaffale(a.dataset.cat);
 });
 $("#righe").addEventListener("click", e => { const b = e.target.closest(".libro"); if (b) apri(b.dataset.id); });
+$("#scaffali").addEventListener("click", e => {
+  const b = e.target.closest("button[data-cat]"); if (!b) return;
+  if (!b.dataset.cat && !filtro.q) { $("#indietro").click(); return; }   // "Tutti" senza ricerca = home
+  vaiAScaffale(b.dataset.cat);
+  const attivo = $('#scaffali button[aria-pressed="true"]'); if (attivo) attivo.scrollIntoView({ inline: "center", block: "nearest" });
+});
 $("#indietro").addEventListener("click", () => {
   filtro.categoria = ""; $("#q").value = ""; filtro.q = ""; $("#svuota").hidden = true;
   vaiAScaffale("");
