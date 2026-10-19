@@ -121,6 +121,11 @@ button,input,select{font:inherit;color:inherit}
 .copertina.occupato::after{content:"";position:absolute;inset:0;background:rgba(243,229,227,.55)}
 .copertina .fascia{position:absolute;z-index:1;left:0;right:0;bottom:0;background:var(--inchiostro);color:var(--pagina);font:700 .7rem/1 var(--testo);padding:6px 4px;text-align:center}
 
+.suggerisci{padding:10px 0 34px;color:var(--grigio)}
+.suggerisci p{margin:0}
+.suggerisci .link,.messaggio .link{border:0;background:none;padding:0;font:inherit;color:var(--inchiostro);text-decoration:underline;cursor:pointer}
+.titolo-desiderio{font:400 1.9rem/1.05 var(--mano);margin:4px 36px 4px 0}
+.sotto-desiderio{margin:0 0 14px;color:var(--grigio);max-width:46ch}
 .messaggio{padding:40px 0 60px;max-width:34em}
 .messaggio h2{font:400 1.8rem/1.1 var(--mano);margin:0 0 6px}
 .messaggio p{margin:0;color:var(--grigio)}
@@ -259,7 +264,32 @@ form.richiesta .azioni [type="submit"]{flex:1;max-width:320px}
   <ul class="libri" id="libri"></ul>
   <div class="messaggio" id="messaggio" hidden></div>
   </div>
+
+  <section class="suggerisci">
+    <p>Non trovi quello che cerchi? <button class="link" type="button" id="apri-desiderio">Suggerisci un libro</button> per la biblioteca.</p>
+  </section>
 </main>
+
+<dialog id="dialogo-desiderio" aria-labelledby="desiderio-titolo">
+  <div class="maniglia" aria-hidden="true"></div>
+  <div class="scheda">
+    <button class="chiudi" type="button" aria-label="Chiudi" data-chiudi-desiderio>×</button>
+    <h2 id="desiderio-titolo" class="titolo-desiderio">Suggerisci un libro</h2>
+    <p class="sotto-desiderio">Un libro che vorresti trovare in biblioteca. La bibliotecaria lo riceve e, se arriva, lo vedi nel catalogo.</p>
+    <form class="richiesta" id="form-desiderio" novalidate>
+      <label>Titolo<input name="titolo" required autocomplete="off"></label>
+      <label>Autore<input name="autore" autocomplete="off"></label>
+      <label>Perché lo consigli, o altre note<input name="nota" autocomplete="off"></label>
+      <label>Il tuo nome (facoltativo)<input name="nome" autocomplete="name"></label>
+      <label>Email, se vuoi sapere quando arriva (facoltativa)<input name="email" type="email" autocomplete="email" inputmode="email"></label>
+      <div class="azioni">
+        <p class="esito" id="esito-desiderio" aria-live="polite"></p>
+        <button class="bottone" type="submit">Invia il suggerimento</button>
+        <button class="bottone chiaro" type="button" data-chiudi-desiderio>Annulla</button>
+      </div>
+    </form>
+  </div>
+</dialog>
 
 <footer class="piede">
   <div class="contenitore">
@@ -465,11 +495,11 @@ function disegna() {
   $("#libri").innerHTML = r.map(tessera).join("");
   if (r.length) $("#messaggio").hidden = true;
   else if (!LIBRI.length) messaggio("Il catalogo è ancora vuoto", "I libri arrivano presto: torna a dare un'occhiata.");
-  else messaggio("Nessun libro trovato", filtro.q ? `Niente per «${filtro.q}». Prova con un'altra parola o togli i filtri.` : "Prova a togliere i filtri.");
+  else messaggio("Nessun libro trovato", filtro.q ? `Niente per «${filtro.q}». Prova con un'altra parola o togli i filtri.` : "Prova a togliere i filtri.", filtro.q);
 }
 
-function messaggio(titolo, testo) {
-  $("#messaggio").innerHTML = `<h2>${esc(titolo)}</h2><p>${esc(testo)}</p>`;
+function messaggio(titolo, testo, conSuggerimento) {
+  $("#messaggio").innerHTML = `<h2>${esc(titolo)}</h2><p>${esc(testo)}</p>${conSuggerimento ? `<p>Oppure <button class="link" type="button" data-suggerisci>suggerisci questo libro</button> alla biblioteca.</p>` : ""}`;
   $("#messaggio").hidden = false;
 }
 
@@ -697,6 +727,37 @@ function apriDaIndirizzo() {
   if (id && !dialogo.open && LIBRI.some(l => l.id === id)) apri(id);
 }
 window.addEventListener("hashchange", apriDaIndirizzo);
+
+/* ---------- suggerisci un libro ---------- */
+const dialogoDesiderio = $("#dialogo-desiderio");
+function apriDesiderio(titolo) {
+  const f = $("#form-desiderio");
+  f.reset(); $("#esito-desiderio").textContent = ""; $("#esito-desiderio").className = "esito";
+  f.querySelector('[type="submit"]').disabled = false; f.querySelector('[type="submit"]').textContent = "Invia il suggerimento";
+  f.hidden = false;
+  if (titolo) f.titolo.value = titolo;
+  dialogoDesiderio.showModal();
+  setTimeout(() => (titolo ? f.autore : f.titolo).focus({ preventScroll: true }), 300);
+}
+$("#apri-desiderio").addEventListener("click", () => apriDesiderio(""));
+$("#messaggio").addEventListener("click", e => { if (e.target.closest("[data-suggerisci]")) apriDesiderio(filtro.q); });
+dialogoDesiderio.addEventListener("click", e => { if (e.target === dialogoDesiderio || e.target.closest("[data-chiudi-desiderio]")) dialogoDesiderio.close(); });
+$("#form-desiderio").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const f = ev.target, esito = $("#esito-desiderio");
+  esito.className = "esito"; esito.textContent = "";
+  if (!f.titolo.value.trim()) { f.titolo.setAttribute("aria-invalid", "true"); esito.className = "esito errore"; esito.textContent = "Scrivi almeno il titolo."; f.titolo.focus(); return; }
+  if (f.email.value && !f.email.checkValidity()) { f.email.setAttribute("aria-invalid", "true"); esito.className = "esito errore"; esito.textContent = "L'indirizzo email non sembra giusto."; f.email.focus(); return; }
+  const b = f.querySelector('[type="submit"]'); b.disabled = true; b.textContent = "Invio…";
+  const dati = { azione: "desiderio" }; ["titolo", "autore", "nota", "nome", "email"].forEach(k => dati[k] = f[k].value.trim());
+  const r = API_URL ? await invia(dati) : { ok: true, prova: true };
+  if (r.ok) {
+    f.hidden = true;
+    f.insertAdjacentHTML("afterend", `<div class="fatto" id="desiderio-fatto"><h3>Grazie!</h3><p>Il suggerimento è arrivato alla biblioteca.${r.prova ? " (Anteprima: non è stato inviato niente.)" : ""}</p><p style="margin-top:10px"><button class="bottone chiaro" type="button" data-chiudi-desiderio>Chiudi</button></p></div>`);
+  } else { esito.className = "esito errore"; esito.textContent = r.errore || "Invio non riuscito: riprova."; b.disabled = false; b.textContent = "Invia il suggerimento"; }
+});
+dialogoDesiderio.addEventListener("close", () => { const d = $("#desiderio-fatto"); if (d) d.remove(); });
+$("#form-desiderio").addEventListener("input", e => e.target.removeAttribute("aria-invalid"));
 
 /* ---------- invio ad Apps Script ----------
    POST come text/plain (niente preflight CORS). Se la risposta diretta non arriva

@@ -55,7 +55,8 @@ const URL_SITO = "https://circolo-aurora.github.io/biblioteca/";
 const TAB = {
   Libri:    ["id", "isbn", "titolo", "autori", "editore", "anno", "categoria", "copertina", "trama", "stato", "data_inserimento", "collana", "genere", "copie", "copertina_cercata", "isbn_trovato"],
   Prestiti: ["id_prestito", "id_libro", "titolo", "nome", "email", "telefono", "data_richiesta", "data_ritiro", "data_restituzione", "stato", "scadenza"],
-  Desideri: ["data", "titolo", "autore", "nota", "nome", "email", "stato"],
+  Desideri: ["id_desiderio", "data", "titolo", "autore", "nota", "nome", "email", "stato"],
+  Rimossi:  ["id", "isbn", "titolo", "autori", "editore", "anno", "categoria", "copertina", "trama", "stato", "data_inserimento", "collana", "genere", "copie", "data_rimozione", "motivo"],
   Log:      ["timestamp", "azione", "id", "dettaglio"],
   Config:   ["categoria"]
 };
@@ -113,6 +114,12 @@ function doPost(e) {
       case "aggiungiLibro": out = aggiungiLibro_(d); break;
       case "richiesta":     out = richiesta_(d); break;
       case "caricaCopertina": out = caricaCopertina_(d); break;
+      case "prestiti":      out = prestiti_(d); break;
+      case "cambiaPrestito": out = cambiaPrestito_(d); break;
+      case "modificaLibro": out = modificaLibro_(d); break;
+      case "desiderio":     out = desiderio_(d); break;
+      case "desideri":      out = desideri_(d); break;
+      case "cambiaDesiderio": out = cambiaDesiderio_(d); break;
       default: throw new Error("Azione non riconosciuta.");
     }
   } catch (err) {
@@ -301,21 +308,146 @@ function allineaPrestiti_(range) {
     }
   }
   if (!tocca(cStato)) return;   // colonna stato non toccata
-  const libroPer = { "richiesto": "prenotato", "in prestito": "in prestito", "restituito": "disponibile", "annullato": "disponibile" };
-  const oggi = new Date();
-  for (let r = Math.max(2, range.getRow()); r <= range.getLastRow(); r++) {
-    const stato = String(sh.getRange(r, cStato).getValue()).trim();
-    const idLibro = String(sh.getRange(r, c("id_libro")).getValue()).trim();
-    if (!libroPer[stato] || !idLibro) continue;
-    if (stato === "in prestito" && cRitiro && !sh.getRange(r, cRitiro).getValue()) {
-      sh.getRange(r, cRitiro).setValue(oggi);
-      if (cScad) sh.getRange(r, cScad).setValue(scadenza_(oggi));
-    }
-    if (stato === "restituito" && c("data_restituzione") && !sh.getRange(r, c("data_restituzione")).getValue()) sh.getRange(r, c("data_restituzione")).setValue(oggi);
-    impostaStatoLibro_(idLibro, libroPer[stato]);
-    log_("stato prestito", sh.getRange(r, c("id_prestito")).getValue(), idLibro + " → " + stato);
-  }
+  for (let r = Math.max(2, range.getRow()); r <= range.getLastRow(); r++) applicaStatoPrestito_(sh, r, String(sh.getRange(r, cStato).getValue()).trim());
   cacheSvuota_("catalogo");
+}
+
+// ---- Area riservata: prestiti ------------------------------------------------------
+
+// Elenco per la gestione: tutti i prestiti aperti (richiesto, in prestito) e gli ultimi 30 chiusi.
+function prestiti_(d) {
+  verificaPassword_(d.password);
+  const tutti = leggiTab_("Prestiti").filter(r => r.id_prestito);
+  const aperti = tutti.filter(r => ["richiesto", "in prestito"].indexOf(String(r.stato).trim()) >= 0);
+  const chiusi = tutti.filter(r => ["richiesto", "in prestito"].indexOf(String(r.stato).trim()) < 0).slice(-30).reverse();
+  const campi = ["id_prestito", "id_libro", "titolo", "nome", "email", "telefono", "data_richiesta", "data_ritiro", "data_restituzione", "stato", "scadenza"];
+  const pulito = r => { const o = {}; campi.forEach(k => { o[k] = formatta_(r[k]); }); return o; };
+  return { ok: true, aperti: aperti.map(pulito), chiusi: chiusi.map(pulito), oggi: formatta_(new Date()) };
+}
+
+// Cambio di stato dall'area riservata (stessa logica delle modifiche a mano nel foglio).
+function cambiaPrestito_(d) {
+  verificaPassword_(d.password);
+  const stato = String(d.stato || "").trim();
+  if (STATI_PRESTITO.indexOf(stato) < 0) throw new Error("Stato non valido.");
+  const sh = tab_("Prestiti");
+  const cId = indice_(sh, "id_prestito"), cStato = indice_(sh, "stato");
+  const n = sh.getLastRow() - 1;
+  if (n < 1) throw new Error("Prestito non trovato.");
+  const ids = sh.getRange(2, cId, n, 1).getValues().map(r => String(r[0]).trim());
+  const i = ids.indexOf(String(d.id_prestito || "").trim());
+  if (i < 0) throw new Error("Prestito non trovato.");
+  const riga = i + 2;
+  sh.getRange(riga, cStato).setValue(stato);
+  applicaStatoPrestito_(sh, riga, stato);
+  cacheSvuota_("catalogo");
+  return { ok: true };
+}
+
+// Effetti di uno stato su una riga di Prestiti: date e stato del libro.
+function applicaStatoPrestito_(sh, riga, stato) {
+  const testa = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(h => String(h).trim());
+  const c = n => testa.indexOf(n) + 1;
+  const libroPer = { "richiesto": "prenotato", "in prestito": "in prestito", "restituito": "disponibile", "annullato": "disponibile" };
+  const idLibro = String(sh.getRange(riga, c("id_libro")).getValue()).trim();
+  if (!libroPer[stato] || !idLibro) return;
+  const oggi = new Date();
+  if (stato === "in prestito" && c("data_ritiro") && !sh.getRange(riga, c("data_ritiro")).getValue()) {
+    sh.getRange(riga, c("data_ritiro")).setValue(oggi);
+    if (c("scadenza")) sh.getRange(riga, c("scadenza")).setValue(scadenza_(oggi));
+  }
+  if (stato === "restituito" && c("data_restituzione") && !sh.getRange(riga, c("data_restituzione")).getValue()) sh.getRange(riga, c("data_restituzione")).setValue(oggi);
+  impostaStatoLibro_(idLibro, libroPer[stato]);
+  log_("stato prestito", sh.getRange(riga, c("id_prestito")).getValue(), idLibro + " → " + stato);
+}
+
+// ---- Area riservata: modifica dei libri ------------------------------------------------
+
+// Aggiorna i campi di un libro esistente (per id). Con rimuovi=true la riga passa nel tab Rimossi.
+function modificaLibro_(d) {
+  verificaPassword_(d.password);
+  const sh = tab_("Libri");
+  const cId = indice_(sh, "id");
+  const n = sh.getLastRow() - 1;
+  if (n < 1) throw new Error("Libro non trovato.");
+  const ids = sh.getRange(2, cId, n, 1).getValues().map(r => String(r[0]).trim());
+  const i = ids.indexOf(String(d.id || "").trim());
+  if (i < 0) throw new Error("Libro non trovato: ricarica la pagina.");
+  const riga = i + 2;
+  const testa = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(h => String(h).trim());
+  const c = k => testa.indexOf(k) + 1;
+
+  if (d.rimuovi) {
+    const valori = sh.getRange(riga, 1, 1, sh.getLastColumn()).getValues()[0];
+    const obj = {}; testa.forEach((h, k) => { if (h) obj[h] = valori[k]; });
+    obj.data_rimozione = new Date(); obj.motivo = pulisci_(d.motivo, 200);
+    scriviRiga_("Rimossi", obj);
+    sh.deleteRow(riga);
+    log_("rimuoviLibro", d.id, String(obj.titolo || "") + (obj.motivo ? " — " + obj.motivo : ""));
+    cacheSvuota_("catalogo");
+    return { ok: true, rimosso: true };
+  }
+
+  const titolo = pulisci_(d.titolo, 300);
+  if (!titolo) throw new Error("Manca il titolo.");
+  const isbn = d.isbn ? normalizzaIsbn_(d.isbn) : "";
+  if (d.isbn && !isbn) throw new Error("ISBN non valido: controlla le cifre.");
+  const categoria = pulisci_(d.categoria, 100);
+  const categorie = categorie_();
+  if (categorie.length && categorie.indexOf(categoria) < 0) throw new Error("Scegli uno scaffale dall'elenco.");
+  const nuovi = {
+    isbn: isbn, titolo: titolo, autori: pulisci_(d.autori, 300), editore: pulisci_(d.editore, 150), anno: pulisci_(d.anno, 10),
+    categoria: categoria, copertina: /^https:\/\//.test(String(d.copertina || "")) ? pulisci_(d.copertina, 500) : "",
+    trama: pulisci_(d.trama, 3000), genere: pulisci_(d.genere, 100), collana: pulisci_(d.collana, 150)
+  };
+  if (d.stato && STATI_LIBRO.indexOf(String(d.stato)) >= 0) nuovi.stato = String(d.stato);
+  Object.keys(nuovi).forEach(k => { if (c(k)) sh.getRange(riga, c(k)).setValue(nuovi[k]); });
+  log_("modificaLibro", d.id, titolo);
+  cacheSvuota_("catalogo");
+  return { ok: true, id: d.id };
+}
+
+// ---- Lista dei desideri ----------------------------------------------------------------
+
+// Dal sito: "suggerisci un libro". Nome e mail facoltativi.
+function desiderio_(d) {
+  const titolo = pulisci_(d.titolo, 200);
+  if (!titolo) throw new Error("Scrivi almeno il titolo.");
+  const email = pulisci_(d.email, 200);
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("L'indirizzo email non sembra giusto: controllalo.");
+  const id = "D" + String(leggiTab_("Desideri").filter(r => r.id_desiderio).length + 1).padStart(4, "0");
+  scriviRiga_("Desideri", { id_desiderio: id, data: new Date(), titolo: titolo, autore: pulisci_(d.autore, 200), nota: pulisci_(d.nota, 500),
+    nome: pulisci_(d.nome, 120), email: email, stato: "nuovo" });
+  log_("desiderio", id, titolo);
+  try {
+    const a = PropertiesService.getScriptProperties().getProperty("EMAIL_BIBLIOTECARIA");
+    if (a) MailApp.sendEmail({ to: a, name: NOME_MITTENTE, subject: "Libro suggerito: " + titolo,
+      body: ["Qualcuno ha suggerito un libro per la biblioteca (" + id + ")", "", "Titolo: " + titolo, "Autore: " + (pulisci_(d.autore, 200) || "—"),
+        "Nota: " + (pulisci_(d.nota, 500) || "—"), "", "Da: " + (pulisci_(d.nome, 120) || "anonimo") + (email ? " <" + email + ">" : ""),
+        "", "Lo trovi nell'area riservata, scheda Desideri, e nel foglio: " + SpreadsheetApp.getActiveSpreadsheet().getUrl()].join("\n") });
+  } catch (err) { console.error("Avviso desiderio non inviato: " + err); }
+  return { ok: true, id: id };
+}
+
+function desideri_(d) {
+  verificaPassword_(d.password);
+  const campi = ["id_desiderio", "data", "titolo", "autore", "nota", "nome", "email", "stato"];
+  const lista = leggiTab_("Desideri").filter(r => r.id_desiderio).reverse().map(r => { const o = {}; campi.forEach(k => { o[k] = formatta_(r[k]); }); return o; });
+  return { ok: true, desideri: lista };
+}
+
+function cambiaDesiderio_(d) {
+  verificaPassword_(d.password);
+  const stato = String(d.stato || "").trim();
+  if (STATI_DESIDERIO.indexOf(stato) < 0) throw new Error("Stato non valido.");
+  const sh = tab_("Desideri");
+  const cId = indice_(sh, "id_desiderio"), cStato = indice_(sh, "stato");
+  const n = sh.getLastRow() - 1;
+  const ids = n > 0 ? sh.getRange(2, cId, n, 1).getValues().map(r => String(r[0]).trim()) : [];
+  const i = ids.indexOf(String(d.id_desiderio || "").trim());
+  if (i < 0) throw new Error("Suggerimento non trovato.");
+  sh.getRange(i + 2, cStato).setValue(stato);
+  return { ok: true };
 }
 
 function scadenza_(dataRitiro) {

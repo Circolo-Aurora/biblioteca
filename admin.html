@@ -45,6 +45,40 @@ h2{font:400 2rem/1.05 var(--mano);margin:0 0 6px}
 .pannello{background:var(--pagina);border:1.5px solid var(--inchiostro);border-radius:14px;padding:18px 18px 20px;box-shadow:3px 4px 0 var(--rosa-scuro)}
 .sotto{margin:0 0 16px;color:var(--grigio)}
 .riga-titolo{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px}
+.schede{display:flex;gap:6px;align-items:center;overflow-x:auto;margin:0 -16px 14px;padding:2px 16px 6px;scrollbar-width:none}
+.schede::-webkit-scrollbar{display:none}
+.schede button[data-scheda]{flex:none;border:1.5px solid var(--inchiostro);background:transparent;border-radius:8px;padding:5px 12px 6px;font:400 1.15rem/1.2 var(--mano);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.schede button[aria-pressed="true"]{background:var(--inchiostro);color:var(--pagina)}
+.schede .esci{margin-left:auto;flex:none}
+.pallino{min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--rosso);color:#fff;font:700 .78rem/20px var(--testo);text-align:center}
+.schede button[aria-pressed="true"] .pallino{background:var(--pagina);color:var(--rosso)}
+
+/* prestiti */
+.gruppo{margin:14px 0 0}
+.gruppo h3{font:400 1.35rem/1.1 var(--mano);margin:0 0 6px}
+.gruppo h3 small{font:400 .85rem/1 var(--testo);color:var(--grigio);margin-left:6px}
+.prestito-riga{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:10px 0;border-top:1px solid var(--rosa-scuro)}
+.prestito-riga .t{font-weight:700}
+.prestito-riga .chi{color:var(--grigio);font-size:.92rem}
+.prestito-riga .chi a{color:var(--inchiostro)}
+.prestito-riga .quando{font-size:.88rem;color:var(--grigio)}
+.prestito-riga .quando.scaduto{color:var(--rosso);font-weight:700}
+.prestito-riga .az{display:flex;flex-direction:column;gap:6px;align-items:stretch}
+.prestito-riga .az .bottone{padding:7px 12px;font-size:.9rem}
+.prestito-riga.chiuso{opacity:.7}
+.vuoto{margin:8px 0 0;color:var(--grigio)}
+
+/* modifica: ricerca */
+.ricerca-cat input{border:2px solid var(--inchiostro);border-radius:12px;padding:12px 14px;font-size:1.05rem;width:100%}
+.trovati{list-style:none;margin:12px 0 0;padding:0}
+.trovati li{display:grid;grid-template-columns:44px 1fr;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--rosa-scuro);cursor:pointer}
+.trovati .copertina{width:44px}
+.trovati .copertina .t,.trovati .copertina .a{display:none}
+.trovati b{display:block}
+.trovati span{color:var(--grigio);font-size:.9rem}
+.trovati li:hover{background:var(--rosa)}
+body:not(.modifica) .solo-modifica{display:none !important}
+body.modifica .solo-aggiunta,body.modifica .da-collana{display:none !important}
 .link{border:0;background:none;padding:4px 0;text-decoration:underline;cursor:pointer;color:var(--inchiostro)}
 
 label{display:grid;gap:4px;font-size:.92rem;color:var(--grigio)}
@@ -178,13 +212,54 @@ form{display:grid;gap:12px}
   </section>
 
   <!-- inserimento -->
-  <section class="pannello" id="inserimento" hidden>
+  <div id="gestione" hidden>
+  <nav class="schede" aria-label="Sezioni">
+    <button type="button" data-scheda="prestiti" aria-pressed="true">Prestiti <span class="pallino" id="n-prestiti" hidden></span></button>
+    <button type="button" data-scheda="aggiungi">Aggiungi</button>
+    <button type="button" data-scheda="modifica">Modifica</button>
+    <button type="button" data-scheda="desideri">Desideri <span class="pallino" id="n-desideri" hidden></span></button>
+    <button class="link esci" type="button" id="esci">Esci</button>
+  </nav>
+
+  <!-- PRESTITI -->
+  <section class="pannello scheda-p" id="scheda-prestiti">
     <div class="riga-titolo">
-      <h2>Aggiungi un libro</h2>
-      <button class="link" type="button" id="esci">Esci</button>
+      <h2>Prestiti</h2>
+      <button class="link" type="button" id="ricarica-prestiti">Aggiorna</button>
+    </div>
+    <p class="esito" id="esito-prestiti" aria-live="polite"></p>
+    <div id="prestiti"></div>
+  </section>
+
+  <!-- MODIFICA: ricerca nel catalogo -->
+  <section class="pannello scheda-p" id="scheda-modifica" hidden>
+    <h2>Modifica un libro</h2>
+    <p class="sotto">Cerca il libro nel catalogo, poi correggi la scheda, cambia scaffale o aggiungi la copertina.</p>
+    <div class="ricerca-cat">
+      <input id="cerca-cat" type="search" placeholder="Titolo, autore o codice (L0123)" autocomplete="off" enterkeyhint="search">
+    </div>
+    <ul class="trovati" id="trovati"></ul>
+  </section>
+
+  <!-- DESIDERI -->
+  <section class="pannello scheda-p" id="scheda-desideri" hidden>
+    <div class="riga-titolo">
+      <h2>Libri suggeriti</h2>
+      <button class="link" type="button" id="ricarica-desideri">Aggiorna</button>
+    </div>
+    <p class="sotto">Dal sito, "Suggerisci un libro". Quando lo compri, aggiungilo dalla scheda Aggiungi e segnalo qui come acquistato.</p>
+    <p class="esito" id="esito-desideri" aria-live="polite"></p>
+    <div id="desideri"></div>
+  </section>
+
+  <!-- AGGIUNGI / scheda del libro (usata anche per la modifica) -->
+  <section class="pannello scheda-p" id="inserimento" hidden>
+    <div class="riga-titolo">
+      <h2 id="titolo-scheda">Aggiungi un libro</h2>
+      <button class="link" type="button" id="annulla-modifica" hidden>Annulla modifica</button>
     </div>
 
-    <form class="isbn" id="form-isbn" novalidate>
+    <form class="isbn solo-aggiunta" id="form-isbn" novalidate>
       <label for="isbn">ISBN</label>
       <div class="isbn-riga">
         <input id="isbn" inputmode="numeric" autocomplete="off" placeholder="978…" enterkeyhint="search">
@@ -229,12 +304,17 @@ form{display:grid;gap:12px}
         <label>Anno<input name="anno" inputmode="numeric" maxlength="4" autocomplete="off"></label>
       </div>
       <label>Scaffale<select name="categoria"><option value="">Scegli lo scaffale…</option></select></label>
+      <div class="due solo-modifica">
+        <label>ISBN<input name="isbn_visibile" inputmode="numeric" autocomplete="off"></label>
+        <label>Stato<select name="stato"><option value="disponibile">disponibile</option><option value="prenotato">prenotato</option><option value="in prestito">in prestito</option></select></label>
+      </div>
       <label>Trama <textarea name="trama" rows="4"></textarea></label>
-      <input type="hidden" name="isbn"><input type="hidden" name="copertina"><input type="hidden" name="collana">
+      <input type="hidden" name="isbn"><input type="hidden" name="copertina"><input type="hidden" name="collana"><input type="hidden" name="id"><input type="hidden" name="genere">
       <div class="azioni">
         <p class="esito" id="esito-libro" aria-live="polite"></p>
-        <button class="bottone" type="submit">Salva nel catalogo</button>
-        <button class="bottone chiaro" type="button" id="svuota">Svuota</button>
+        <button class="bottone" type="submit" id="salva">Salva nel catalogo</button>
+        <button class="bottone chiaro" type="button" id="svuota"><span class="solo-aggiunta">Svuota</span><span class="solo-modifica">Ripristina</span></button>
+        <button class="bottone chiaro solo-modifica" type="button" id="rimuovi">Rimuovi dal catalogo</button>
       </div>
     </form>
   </section>
@@ -243,6 +323,7 @@ form{display:grid;gap:12px}
     <h3>Aggiunti adesso</h3>
     <ul id="lista-aggiunti"></ul>
   </section>
+  </div>
 </main>
 
 <!-- fotocamera per il codice a barre -->
@@ -355,7 +436,8 @@ async function entra(password, silenzioso) {
   const sel = libro.categoria;
   sel.innerHTML = `<option value="">Scegli lo scaffale…</option>` + (r.categorie || []).map(c => `<option>${esc(c)}</option>`).join("");
   $("#accesso").hidden = true;
-  $("#inserimento").hidden = false;
+  $("#gestione").hidden = false;
+  vaiAScheda(localStorage.getItem("biblioteca-scheda") || "prestiti");
   esito.textContent = "";
   disegnaAnteprima();
   $("#isbn").focus();
@@ -373,8 +455,168 @@ $("#esci").addEventListener("click", () => {
   PASSWORD = "";
   memoria.cancella();
   accesso.reset();
-  $("#inserimento").hidden = true; $("#aggiunti").hidden = true; $("#accesso").hidden = false;
+  $("#gestione").hidden = true; $("#aggiunti").hidden = true; $("#accesso").hidden = false;
   accesso.password.focus();
+});
+
+/* ---------- schede ---------- */
+function vaiAScheda(nome) {
+  document.querySelectorAll(".schede button[data-scheda]").forEach(b => b.setAttribute("aria-pressed", b.dataset.scheda === (nome === "modifica-scheda" ? "modifica" : nome)));
+  $("#scheda-prestiti").hidden = nome !== "prestiti";
+  $("#scheda-modifica").hidden = nome !== "modifica";
+  $("#scheda-desideri").hidden = nome !== "desideri";
+  $("#inserimento").hidden = !(nome === "aggiungi" || nome === "modifica-scheda");
+  $("#aggiunti").hidden = nome !== "aggiungi" || !$("#lista-aggiunti").children.length;
+  if (nome === "aggiungi" && libro.id.value) esciDaModifica();
+  try { localStorage.setItem("biblioteca-scheda", nome === "modifica-scheda" ? "modifica" : nome); } catch {}
+  if (nome === "prestiti") caricaPrestiti();
+  if (nome === "desideri") caricaDesideri();
+  if (nome === "modifica") { caricaCatalogo(); $("#cerca-cat").focus(); }
+  if (nome === "aggiungi") $("#isbn").focus();
+}
+document.querySelector(".schede").addEventListener("click", e => { const b = e.target.closest("button[data-scheda]"); if (b) vaiAScheda(b.dataset.scheda); });
+
+/* ---------- prestiti ---------- */
+const dataIt = s => { if (!s) return ""; const [a, m, g] = String(s).split("-"); return g && m ? `${g}/${m}/${a}` : s; };
+const giorni = (a, b) => Math.round((new Date(a) - new Date(b)) / 86400000);
+let OGGI = new Date().toISOString().slice(0, 10);
+
+async function caricaPrestiti() {
+  const esito = $("#esito-prestiti");
+  esito.className = "esito"; esito.textContent = "Carico…";
+  const r = await invia({ azione: "prestiti", password: PASSWORD });
+  if (!r.ok) { esito.className = "esito errore"; esito.textContent = r.errore || "Non riesco a leggere i prestiti."; return; }
+  esito.textContent = "";
+  OGGI = r.oggi || OGGI;
+  disegnaPrestiti(r.aperti, r.chiusi);
+}
+
+function disegnaPrestiti(aperti, chiusi) {
+  const richiesti = aperti.filter(p => p.stato === "richiesto");
+  const inCorso = aperti.filter(p => p.stato === "in prestito").sort((a, b) => String(a.scadenza).localeCompare(String(b.scadenza)));
+  const scaduti = inCorso.filter(p => p.scadenza && p.scadenza < OGGI);
+  const n = richiesti.length + scaduti.length;
+  $("#n-prestiti").textContent = n; $("#n-prestiti").hidden = !n;
+  const chi = p => `<div class="chi">${esc(p.nome)}${p.telefono ? ` · <a href="tel:${esc(p.telefono.replace(/\s+/g, ""))}">${esc(p.telefono)}</a>` : ""}${p.email ? ` · <a href="mailto:${esc(p.email)}">${esc(p.email)}</a>` : ""}</div>`;
+  const riga = (p, quando, azioni, cls = "") => `<div class="prestito-riga ${cls}" data-id="${esc(p.id_prestito)}">
+      <div><div class="t">${esc(p.titolo)} <small style="color:var(--grigio);font-weight:400">${esc(p.id_libro)}</small></div>${chi(p)}${quando}</div>
+      <div class="az">${azioni}</div></div>`;
+  const b = (stato, testo, chiaro) => `<button class="bottone ${chiaro ? "chiaro" : ""}" type="button" data-stato="${stato}">${testo}</button>`;
+  let h = `<section class="gruppo"><h3>Da preparare <small>${richiesti.length}</small></h3>`;
+  h += richiesti.length ? richiesti.map(p => riga(p, `<div class="quando">richiesto il ${dataIt(p.data_richiesta)}</div>`, b("in prestito", "Consegnato") + b("annullato", "Annulla", true))).join("") : `<p class="vuoto">Nessuna richiesta in attesa.</p>`;
+  h += `</section><section class="gruppo"><h3>In prestito <small>${inCorso.length}${scaduti.length ? `, ${scaduti.length} in ritardo` : ""}</small></h3>`;
+  h += inCorso.length ? inCorso.map(p => {
+    const d = p.scadenza ? giorni(p.scadenza, OGGI) : null;
+    const q = d === null ? "" : d < 0 ? `in ritardo di ${-d} giorni (scadeva il ${dataIt(p.scadenza)})` : d === 0 ? "scade oggi" : `scade il ${dataIt(p.scadenza)} (tra ${d} giorni)`;
+    return riga(p, `<div class="quando ${d !== null && d < 0 ? "scaduto" : ""}">${q}</div>`, b("restituito", "Restituito"));
+  }).join("") : `<p class="vuoto">Nessun libro fuori.</p>`;
+  h += `</section>`;
+  if (chiusi.length) {
+    h += `<section class="gruppo"><h3>Chiusi di recente <small>${chiusi.length}</small></h3>` + chiusi.map(p =>
+      riga(p, `<div class="quando">${p.stato === "restituito" ? "restituito il " + dataIt(p.data_restituzione) : "annullato"}</div>`, b("in prestito", "Riapri", true), "chiuso")).join("") + `</section>`;
+  }
+  $("#prestiti").innerHTML = h;
+}
+
+$("#prestiti").addEventListener("click", async e => {
+  const bt = e.target.closest("button[data-stato]"); if (!bt) return;
+  const id = bt.closest(".prestito-riga").dataset.id;
+  if (bt.dataset.stato === "annullato" && !confirm("Annullare questa richiesta? Il libro torna disponibile.")) return;
+  const esito = $("#esito-prestiti");
+  bt.closest(".az").querySelectorAll("button").forEach(x => x.disabled = true);
+  const r = await invia({ azione: "cambiaPrestito", password: PASSWORD, id_prestito: id, stato: bt.dataset.stato });
+  if (!r.ok) { esito.className = "esito errore"; esito.textContent = r.errore || "Non riesco a cambiare lo stato."; bt.closest(".az").querySelectorAll("button").forEach(x => x.disabled = false); return; }
+  esito.className = "esito ok"; esito.textContent = "Fatto.";
+  caricaPrestiti();
+});
+$("#ricarica-prestiti").addEventListener("click", caricaPrestiti);
+
+/* ---------- desideri ---------- */
+async function caricaDesideri() {
+  const esito = $("#esito-desideri");
+  esito.className = "esito"; esito.textContent = "Carico…";
+  const r = await invia({ azione: "desideri", password: PASSWORD });
+  if (!r.ok) { esito.className = "esito errore"; esito.textContent = r.errore || "Non riesco a leggere i suggerimenti."; return; }
+  esito.textContent = "";
+  const nuovi = r.desideri.filter(d => d.stato === "nuovo");
+  $("#n-desideri").textContent = nuovi.length; $("#n-desideri").hidden = !nuovi.length;
+  $("#desideri").innerHTML = r.desideri.length ? r.desideri.map(d => `<div class="prestito-riga ${d.stato !== "nuovo" ? "chiuso" : ""}" data-id="${esc(d.id_desiderio)}">
+      <div><div class="t">${esc(d.titolo)}${d.autore ? ` <small style="font-weight:400">— ${esc(d.autore)}</small>` : ""}</div>
+      ${d.nota ? `<div class="chi">${esc(d.nota)}</div>` : ""}
+      <div class="quando">${dataIt(d.data)}${d.nome ? " · " + esc(d.nome) : ""}${d.email ? ` · <a href="mailto:${esc(d.email)}">${esc(d.email)}</a>` : ""}${d.stato !== "nuovo" ? " · " + esc(d.stato) : ""}</div></div>
+      <div class="az">${d.stato === "nuovo" ? `<button class="bottone" type="button" data-stato="acquistato">Acquistato</button><button class="bottone chiaro" type="button" data-stato="scartato">Scarta</button>` : `<button class="bottone chiaro" type="button" data-stato="nuovo">Riapri</button>`}</div>
+    </div>`).join("") : `<p class="vuoto">Nessun suggerimento per ora.</p>`;
+}
+$("#desideri").addEventListener("click", async e => {
+  const bt = e.target.closest("button[data-stato]"); if (!bt) return;
+  const id = bt.closest(".prestito-riga").dataset.id;
+  bt.closest(".az").querySelectorAll("button").forEach(x => x.disabled = true);
+  const r = await invia({ azione: "cambiaDesiderio", password: PASSWORD, id_desiderio: id, stato: bt.dataset.stato });
+  if (!r.ok) { $("#esito-desideri").className = "esito errore"; $("#esito-desideri").textContent = r.errore || "Errore."; return; }
+  caricaDesideri();
+});
+$("#ricarica-desideri").addEventListener("click", caricaDesideri);
+
+/* ---------- modifica: ricerca nel catalogo ---------- */
+let CATALOGO = null;
+const normC = s => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+async function caricaCatalogo(forza) {
+  if (CATALOGO && !forza) return CATALOGO;
+  try {
+    const d = await fetch(API_URL + "?azione=catalogo", { cache: "no-store" }).then(r => r.json());
+    CATALOGO = (d.libri || []).map(l => ({ ...l, _t: normC([l.id, l.titolo, l.autori, l.isbn].join(" ")) }));
+  } catch { CATALOGO = []; }
+  cercaNelCatalogo();
+  return CATALOGO;
+}
+function cercaNelCatalogo() {
+  const q = normC($("#cerca-cat").value.trim());
+  const parole = q.split(/\s+/).filter(Boolean);
+  if (!CATALOGO) { $("#trovati").innerHTML = `<li><span>Carico il catalogo…</span></li>`; return; }
+  if (!parole.length) { $("#trovati").innerHTML = ""; return; }
+  const r = CATALOGO.filter(l => parole.every(p => l._t.includes(p))).slice(0, 30);
+  $("#trovati").innerHTML = r.length ? r.map(l => `<li data-id="${esc(l.id)}">
+      <div class="copertina" style="--c:${colore(l.categoria)}"><span class="t"></span><span class="a"></span>${l.copertina ? `<img src="${esc(l.copertina)}" alt="">` : ""}</div>
+      <div><b>${esc(l.titolo)}</b><span>${esc(l.autori || "")} · ${esc(l.categoria || "")} · ${esc(l.id)}${l.stato !== "disponibile" ? " · " + esc(l.stato) : ""}</span></div></li>`).join("")
+    : `<li><span>Nessun libro trovato.</span></li>`;
+}
+$("#cerca-cat").addEventListener("input", cercaNelCatalogo);
+$("#trovati").addEventListener("click", e => { const li = e.target.closest("li[data-id]"); if (li) apriModifica(li.dataset.id); });
+
+function apriModifica(id) {
+  const l = (CATALOGO || []).find(x => x.id === id); if (!l) return;
+  svuotaLibro();
+  document.body.classList.add("modifica");
+  $("#titolo-scheda").textContent = "Modifica libro " + l.id;
+  $("#annulla-modifica").hidden = false;
+  $("#salva").textContent = "Salva le modifiche";
+  for (const k of ["id", "isbn", "titolo", "autori", "editore", "anno", "categoria", "trama", "copertina", "collana", "genere"]) libro[k].value = l[k] || "";
+  libro.isbn_visibile.value = l.isbn || "";
+  libro.stato.value = l.stato || "disponibile";
+  disegnaAnteprima();
+  vaiAScheda("modifica-scheda");
+  $("#inserimento").scrollIntoView({ block: "start", behavior: "smooth" });
+}
+function esciDaModifica() {
+  document.body.classList.remove("modifica");
+  $("#titolo-scheda").textContent = "Aggiungi un libro";
+  $("#annulla-modifica").hidden = true;
+  $("#salva").textContent = "Salva nel catalogo";
+  svuotaLibro();
+}
+$("#annulla-modifica").addEventListener("click", () => { esciDaModifica(); vaiAScheda("modifica"); });
+$("#rimuovi").addEventListener("click", async () => {
+  const id = libro.id.value; if (!id) return;
+  const motivo = prompt(`Rimuovere «${libro.titolo.value}» dal catalogo? Resta nel foglio Rimossi. Motivo (facoltativo):`);
+  if (motivo === null) return;
+  const esito = $("#esito-libro");
+  const fine = inAttesa($("#rimuovi"), "Rimuovo…", esito);
+  const r = await invia({ azione: "modificaLibro", password: PASSWORD, id, rimuovi: true, motivo });
+  fine();
+  if (!r.ok) { esito.className = "esito errore"; esito.textContent = r.errore || "Non riesco a rimuoverlo."; return; }
+  CATALOGO = CATALOGO.filter(x => x.id !== id);
+  esciDaModifica(); vaiAScheda("modifica");
+  $("#trovati").innerHTML = `<li><span>Libro ${esc(id)} rimosso dal catalogo.</span></li>`;
 });
 
 /* ---------- ISBN ---------- */
@@ -794,12 +1036,13 @@ $("#togli-copertina").addEventListener("click", () => {
 function svuotaLibro() {
   giroCopertina++; caricamento = null; fotoLocale = "";
   libro.reset();
-  libro.isbn.value = ""; libro.copertina.value = ""; libro.collana.value = "";   // i campi nascosti non si azzerano con reset()
+  libro.isbn.value = ""; libro.copertina.value = ""; libro.collana.value = ""; libro.id.value = ""; libro.genere.value = "";   // i campi nascosti non si azzerano con reset()
   libro.querySelectorAll("[aria-invalid]").forEach(x => x.removeAttribute("aria-invalid"));
   $("#esito-libro").textContent = "";
   disegnaAnteprima();
 }
 $("#svuota").addEventListener("click", () => {
+  if (libro.id.value) { apriModifica(libro.id.value); return; }   // in modifica: ricarica i dati originali
   svuotaLibro(); $("#isbn").value = ""; $("#esito-isbn").textContent = ""; $("#isbn").focus();
 });
 
@@ -821,8 +1064,10 @@ async function salva(forza) {
     try { await caricamento; } catch {}
     b.disabled = false; b.textContent = "Salva nel catalogo";
   }
-  const dati = { azione: "aggiungiLibro", password: PASSWORD, forza: !!forza };
-  for (const k of ["isbn", "titolo", "autori", "editore", "anno", "categoria", "trama", "copertina", "collana"]) dati[k] = libro[k].value.trim();
+  const modifica = !!libro.id.value;
+  if (modifica) libro.isbn.value = libro.isbn_visibile.value;
+  const dati = modifica ? { azione: "modificaLibro", password: PASSWORD, id: libro.id.value, stato: libro.stato.value } : { azione: "aggiungiLibro", password: PASSWORD, forza: !!forza };
+  for (const k of ["isbn", "titolo", "autori", "editore", "anno", "categoria", "trama", "copertina", "collana", "genere"]) dati[k] = libro[k].value.trim();
   if (dati.copertina.startsWith("data:")) dati.copertina = "";
   if (dati.copertina.includes("default=false")) dati.copertina = dati.copertina.replace(/[?&]default=false/, "");   // l'immagine è stata verificata nell'anteprima
 
@@ -830,6 +1075,14 @@ async function salva(forza) {
   const r = await invia(dati);
   fine();
 
+  if (r.ok && modifica) {
+    const i = (CATALOGO || []).findIndex(x => x.id === dati.id);
+    if (i >= 0) CATALOGO[i] = { ...CATALOGO[i], ...dati, _t: normC([dati.id, dati.titolo, dati.autori, dati.isbn].join(" ")) };
+    esciDaModifica(); vaiAScheda("modifica");
+    $("#trovati").innerHTML = `<li><span>«${esc(dati.titolo)}» aggiornato.</span></li>`;
+    $("#cerca-cat").value = "";
+    return;
+  }
   if (r.ok) {
     $("#lista-aggiunti").insertAdjacentHTML("afterbegin", `<li><span>${esc(r.id)}</span>${esc(dati.titolo)}</li>`);
     $("#aggiunti").hidden = false;
