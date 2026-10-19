@@ -638,13 +638,13 @@ function riprovaCopertine() {
   console.log(azzerati + " libri da ricercare. Ora esegui cercaCopertine.");
 }
 
-// Per capire PERCHÉ un libro non si trova: prende i primi 12 libri senza copertina (o quelli con la cella
-// "copertina_cercata" uguale a "?" ) e scrive nel registro cosa hanno risposto le fonti e perché è stato scartato.
+// Per capire PERCHÉ un libro non si trova: prende 12 libri a caso senza copertina (o quelli con la cella
+// "copertina_cercata" uguale a "?") e scrive nel registro cosa hanno risposto le fonti e perché è stato scartato.
 // Non modifica il foglio.
 function diagnosiCopertine() {
   const libri = leggiTab_("Libri").filter(l => l.titolo && !l.copertina);
   const scelti = libri.filter(l => String(l.copertina_cercata).trim() === "?");
-  const lista = (scelti.length ? scelti : libri).slice(0, 12);
+  const lista = scelti.length ? scelti : libri.slice().sort(() => Math.random() - 0.5).slice(0, 12);
   console.log("Senza copertina: " + libri.length + " libri. Ne provo " + lista.length + (scelti.length ? " (quelli segnati con ?)" : "") + ".\n");
   lista.forEach(l => {
     const righe = [l.id + " · " + l.titolo + " — " + (l.autori || "(senza autore)")];
@@ -716,7 +716,12 @@ function cercaPerTitolo_(titolo, autori, diario) {
     Utilities.sleep(500);
     const r = UrlFetchApp.fetch("https://www.googleapis.com/books/v1/volumes?q=" + q + "&maxResults=8&printType=books" + (key ? "&key=" + key : ""), { muteHttpExceptions: true });
     if (r.getResponseCode() === 429) throw new Error("429 troppe richieste");
-    if (r.getResponseCode() !== 200) { nota("Google Books: risposta " + r.getResponseCode()); continue; }
+    if (r.getResponseCode() !== 200) {
+      let perche = ""; try { perche = JSON.parse(r.getContentText()).error.message; } catch (e) {}
+      nota("Google Books: risposta " + r.getResponseCode() + (perche ? " — " + perche : "") + (r.getResponseCode() === 403 ? " (chiave rifiutata: controlla che l'API Books sia abilitata nel progetto e che la chiave non abbia restrizioni)" : ""));
+      if (r.getResponseCode() === 403) break;
+      continue;
+    }
     const items = JSON.parse(r.getContentText()).items || [];
     nota("Google Books (" + (q.indexOf("intitle") === 0 ? "stretta" : "larga") + "): " + items.length + " risultati");
     for (const it of items) {
