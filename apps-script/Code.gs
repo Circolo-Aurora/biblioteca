@@ -335,7 +335,8 @@ function miei_(d) {
     nome = formatta_(r.nome) || nome;
     return o;
   });
-  const preferiti = leggiTab_("Preferiti").filter(r => String(r.chiave || "") === chiave && libri[String(r.id_libro)]).map(r => {
+  let righePref = []; try { righePref = leggiTab_("Preferiti"); } catch (e) {}   // senza tab (setup non ancora eseguito): nessun preferito
+  const preferiti = righePref.filter(r => String(r.chiave || "") === chiave && libri[String(r.id_libro)]).map(r => {
     const l = libri[String(r.id_libro)];
     return { id_libro: String(r.id_libro), titolo: formatta_(l.titolo), autori: formatta_(l.autori), copertina: formatta_(l.copertina), categoria: formatta_(l.categoria), stato: formatta_(l.stato) };
   });

@@ -816,7 +816,7 @@ async function apriMiei() {
     { id_prestito: "P0001", id_libro: "L0013", titolo: "Il ladro di fulmini", autori: "Rick Riordan", categoria: "Fantasy e avventura", stato: "in prestito", data_ritiro: "2026-09-01", scadenza: "2026-11-01" },
     { id_prestito: "P0002", id_libro: "L0009", titolo: "Matilde", autori: "Roald Dahl", categoria: "Narrativa ragazzi", stato: "richiesto", data_richiesta: "2026-10-18" },
     { id_prestito: "P0000", id_libro: "L0018", titolo: "Il Gruffalò", autori: "Julia Donaldson", categoria: "Albi illustrati", stato: "restituito", data_restituzione: "2026-08-20" }], preferiti: [] };
-  if (!r.ok) { $("#miei").innerHTML = `<p class="sotto-desiderio">Non riesco a leggere i tuoi prestiti: riprova tra poco.</p>`; return; }
+  if (!r.ok) { $("#miei").innerHTML = `<p class="sotto-desiderio">Non riesco a leggere i tuoi prestiti: riprova tra poco.${r.errore ? " (" + esc(r.errore) + ")" : ""}</p>`; return; }
   const oggi = r.oggi || new Date().toISOString().slice(0, 10);
   const dataIt = s => { if (!s) return ""; const [a, m, g] = String(s).split("-"); return g ? `${g}/${m}/${a}` : s; };
   const giorni = (a, b) => Math.round((new Date(a) - new Date(b)) / 86400000);
