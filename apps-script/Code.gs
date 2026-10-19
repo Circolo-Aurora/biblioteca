@@ -52,7 +52,7 @@ const NOME_MITTENTE = "Biblioteca del Circolo ARCI Aurora";   // nome che compar
 const URL_SITO = "https://circolo-aurora.github.io/biblioteca/";
 
 const TAB = {
-  Libri:    ["id", "isbn", "titolo", "autori", "editore", "anno", "categoria", "copertina", "trama", "stato", "data_inserimento", "collana"],
+  Libri:    ["id", "isbn", "titolo", "autori", "editore", "anno", "categoria", "copertina", "trama", "stato", "data_inserimento", "collana", "genere", "copie", "copertina_cercata"],
   Prestiti: ["id_prestito", "id_libro", "titolo", "nome", "email", "telefono", "data_richiesta", "data_ritiro", "data_restituzione", "stato", "scadenza"],
   Desideri: ["data", "titolo", "autore", "nota", "nome", "email", "stato"],
   Log:      ["timestamp", "azione", "id", "dettaglio"],
@@ -70,7 +70,7 @@ const STATI_PRESTITO  = ["richiesto", "in prestito", "restituito", "annullato"];
 const STATI_DESIDERIO = ["nuovo", "acquistato", "scartato"];
 
 // Campi del tab Libri che il sito pubblico riceve
-const CAMPI_PUBBLICI = ["id", "isbn", "titolo", "autori", "editore", "anno", "categoria", "copertina", "trama", "stato", "data_inserimento", "collana"];
+const CAMPI_PUBBLICI = ["id", "isbn", "titolo", "autori", "editore", "anno", "categoria", "copertina", "trama", "stato", "data_inserimento", "collana", "genere"];
 
 // ---- Endpoint ----------------------------------------------------------------------
 
@@ -393,6 +393,60 @@ function cartellaCopertine_() {
   return cartella;
 }
 
+// ---- Copertine dal foglio -----------------------------------------------------------
+// Per i libri con ISBN e senza copertina prova Google Books, Open Library e Amazon e scrive l'indirizzo
+// trovato nella colonna "copertina"; segna la data in "copertina_cercata" così non riprova.
+// Lavora per 4 minuti e mezzo e si ferma: rilanciarla finché nel registro compare "finito".
+// Per riprovare un libro, svuotare la sua cella "copertina_cercata".
+function cercaCopertine() {
+  const inizio = Date.now();
+  const sh = tab_("Libri");
+  const testa = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(h => String(h).trim());
+  const c = n => { const i = testa.indexOf(n); if (i < 0) throw new Error("Manca la colonna " + n + ": esegui setup."); return i + 1; };
+  const cIsbn = c("isbn"), cCop = c("copertina"), cCerc = c("copertina_cercata");
+  const n = sh.getLastRow() - 1;
+  if (n < 1) return;
+  const isbn = sh.getRange(2, cIsbn, n).getValues(), cop = sh.getRange(2, cCop, n).getValues(), cerc = sh.getRange(2, cCerc, n).getValues();
+  let fatti = 0, trovate = 0;
+  for (let i = 0; i < n; i++) {
+    if (Date.now() - inizio > 270000) { console.log("Tempo scaduto: " + fatti + " controllati, " + trovate + " copertine trovate. Rilancia per continuare."); return; }
+    const k = normalizzaIsbn_(isbn[i][0]);
+    if (!k || cop[i][0] || cerc[i][0]) continue;
+    const url = copertinaPerIsbn_(k);
+    if (url) { sh.getRange(i + 2, cCop).setValue(url); trovate++; }
+    sh.getRange(i + 2, cCerc).setValue(new Date());
+    fatti++;
+  }
+  cacheSvuota_("catalogo");
+  console.log("finito: " + fatti + " controllati, " + trovate + " copertine trovate.");
+}
+
+function copertinaPerIsbn_(isbn) {
+  const prova = (url, minimo) => {
+    try {
+      const r = UrlFetchApp.fetch(url, { muteHttpExceptions: true, followRedirects: true });
+      return r.getResponseCode() === 200 && r.getBlob().getBytes().length > minimo ? url : "";
+    } catch (e) { return ""; }
+  };
+  try {
+    const r = UrlFetchApp.fetch("https://www.googleapis.com/books/v1/volumes?q=isbn:" + isbn + "&maxResults=1", { muteHttpExceptions: true });
+    const v = r.getResponseCode() === 200 ? (JSON.parse(r.getContentText()).items || [])[0] : null;
+    const img = v && v.volumeInfo && v.volumeInfo.imageLinks && (v.volumeInfo.imageLinks.thumbnail || v.volumeInfo.imageLinks.smallThumbnail);
+    if (img) return img.replace(/^http:/, "https:").replace("&edge=curl", "");
+  } catch (e) {}
+  const ol = prova("https://covers.openlibrary.org/b/isbn/" + isbn + "-M.jpg?default=false", 1000);
+  if (ol) return ol.replace("?default=false", "");
+  const i10 = isbn10_(isbn);
+  return i10 ? prova("https://images-na.ssl-images-amazon.com/images/P/" + i10 + ".01.L.jpg", 1000) : "";   // 43 byte = immagine vuota
+}
+
+function isbn10_(i13) {
+  if (!/^978\d{10}$/.test(i13)) return "";
+  const b = i13.slice(3, 12);
+  const k = (11 - b.split("").reduce((t, c, i) => t + Number(c) * (10 - i), 0) % 11) % 11;
+  return b + (k === 10 ? "X" : String(k));
+}
+
 // Da eseguire una volta dall'editor: concede il permesso di usare Drive e crea la cartella delle copertine.
 function provaDrive() {
   console.log("Cartella delle copertine: " + cartellaCopertine_().getUrl());
@@ -433,6 +487,7 @@ function setup() {
   const libri = ss.getSheetByName("Libri");
   colonna_(libri, "isbn").setNumberFormat("@");
   colonna_(libri, "data_inserimento").setNumberFormat("dd/mm/yyyy");
+  colonna_(libri, "copertina_cercata").setNumberFormat("dd/mm/yyyy hh:mm");
   colonna_(libri, "categoria").setDataValidation(
     SpreadsheetApp.newDataValidation().requireValueInRange(cfg.getRange("A2:A"), true).setAllowInvalid(false).build());
   colonna_(libri, "stato").setDataValidation(menu_(STATI_LIBRO));
