@@ -60,12 +60,30 @@ button,input,select{font:inherit;color:inherit}
 .ricerca .svuota{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:none;width:36px;height:36px;border-radius:8px;font-size:1.4rem;line-height:1;cursor:pointer;color:var(--grigio)}
 .ricerca .svuota[hidden]{display:none}
 
-.scaffali{display:flex;gap:8px;overflow-x:auto;padding:4px 16px 10px;margin:0 -16px;scrollbar-width:thin}
-.scaffali button{flex:none;border:1.5px solid var(--inchiostro);background:transparent;border-radius:8px;padding:3px 12px 4px;font:400 1.15rem/1.3 var(--mano);cursor:pointer;white-space:nowrap}
-.scaffali button[aria-pressed="true"]{background:var(--inchiostro);color:var(--pagina)}
-@media (min-width:760px){.scaffali{flex-wrap:wrap;overflow:visible;margin:0;padding:4px 0 10px}}
+.numeri{margin:10px 0 0;font:400 1.6rem/1.1 var(--mano)}
+.numeri b{font-weight:400;color:var(--rosso)}
+
+/* ---------- home a righe ---------- */
+.righe{display:grid;grid-template-columns:minmax(0,1fr);gap:26px;padding:18px 0 40px}
+.riga{min-width:0}
+.riga h2{display:flex;align-items:baseline;gap:10px;margin:0 0 10px;font:400 1.55rem/1.1 var(--mano)}
+.riga h2 small{font:400 .95rem/1 var(--testo);color:var(--grigio)}
+.riga h2 a{margin-left:auto;font:400 1.05rem/1 var(--mano);color:var(--inchiostro);white-space:nowrap}
+.riga ul{list-style:none;margin:0 -16px;padding:4px 16px 8px;display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.riga ul::-webkit-scrollbar{display:none}
+.riga li{flex:0 0 31%;max-width:150px;scroll-snap-align:start}
+@media (min-width:600px){.riga li{flex-basis:132px}}
+.riga .ancora{display:flex;align-items:center;justify-content:center;text-align:center;aspect-ratio:2/3;border:1.5px dashed var(--inchiostro);border-radius:2px 5px 5px 2px;
+  font:400 1.1rem/1.2 var(--mano);color:var(--inchiostro);text-decoration:none;padding:10px;background:transparent}
+@media (min-width:760px){.riga ul{margin:0;padding:4px 0 8px}}
+
+/* ---------- risultati ---------- */
+.testa-risultati{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;padding-top:14px}
+.indietro{border:0;background:none;padding:0;cursor:pointer;color:var(--grigio);text-decoration:underline;font-size:.95rem}
+.titolo-risultati{margin:0;font:400 1.7rem/1.1 var(--mano);flex-basis:100%}
 
 .barra{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;padding:8px 0 14px;border-bottom:1.5px solid var(--rosa-scuro)}
+.barra label{display:inline-flex;align-items:center;gap:8px}
 .interruttore{display:inline-flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
 .interruttore input{appearance:none;width:40px;height:24px;border-radius:12px;background:var(--rosa-scuro);border:1.5px solid var(--inchiostro);position:relative;cursor:pointer;margin:0;transition:background .15s}
 .interruttore input::after{content:"";position:absolute;top:2px;left:2px;width:17px;height:17px;border-radius:50%;background:var(--pagina);border:1.5px solid var(--inchiostro);transition:transform .15s}
@@ -194,6 +212,7 @@ form.richiesta .azioni [type="submit"]{flex:1;max-width:320px}
 
 <main class="contenitore">
   <p class="intro">Cerca un libro e chiedilo in prestito: lo ritiri nella biblioteca del Circolo e lo puoi tenere fino a due mesi.</p>
+  <p class="numeri" id="numeri" aria-live="polite"></p>
 
   <div class="ricerca" role="search">
     <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>
@@ -201,8 +220,15 @@ form.richiesta .azioni [type="submit"]{flex:1;max-width:320px}
     <button class="svuota" id="svuota" type="button" aria-label="Cancella la ricerca" hidden>×</button>
   </div>
 
-  <nav class="scaffali" id="scaffali" aria-label="Scaffali"></nav>
+  <!-- home: una riga per scaffale, da scorrere in orizzontale -->
+  <section class="righe" id="righe"></section>
 
+  <!-- risultati: ricerca o singolo scaffale -->
+  <div class="risultati" id="risultati" hidden>
+  <div class="testa-risultati">
+    <button class="indietro" type="button" id="indietro">← Tutti gli scaffali</button>
+    <h2 class="titolo-risultati" id="titolo-risultati"></h2>
+  </div>
   <div class="barra">
     <label class="interruttore"><input type="checkbox" id="disponibili"> Solo disponibili</label>
     <select id="ordine" aria-label="Ordina">
@@ -215,6 +241,7 @@ form.richiesta .azioni [type="submit"]{flex:1;max-width:320px}
 
   <ul class="libri" id="libri"></ul>
   <div class="messaggio" id="messaggio" hidden></div>
+  </div>
 </main>
 
 <footer class="piede">
@@ -362,15 +389,31 @@ function usa(d) {
   const usate = [...new Set(LIBRI.map(l => l.categoria).filter(Boolean))];
   CATEGORIE = (d.categorie?.length ? d.categorie : usate).filter(c => usate.includes(c));
   if (filtro.categoria && !CATEGORIE.includes(filtro.categoria)) filtro.categoria = "";
-  disegnaScaffali();
+  const disp = LIBRI.filter(l => l.stato === "disponibile").length;
+  $("#numeri").innerHTML = LIBRI.length ? `<b>${LIBRI.length}</b> libri, ${disp} disponibili adesso` : "";
+  $("#q").placeholder = LIBRI.length ? `Cerca tra ${LIBRI.length} libri…` : "Titolo, autore, editore…";
   disegna();
   apriDaIndirizzo();
 }
 
-/* ---------- filtri ---------- */
-function disegnaScaffali() {
-  $("#scaffali").innerHTML = ["", ...CATEGORIE].map(c =>
-    `<button type="button" data-cat="${esc(c)}" aria-pressed="${filtro.categoria === c}">${c ? esc(c) : "Tutti"}</button>`).join("");
+/* ---------- home a righe: ultimi arrivati, poi uno scaffale per riga ---------- */
+const PER_RIGA = 12;
+const recenti = (a, b) => String(b.data_inserimento || "").localeCompare(String(a.data_inserimento || "")) || String(b.id).localeCompare(String(a.id));
+function tessera(l) {
+  return `<li><button class="libro" type="button" data-id="${esc(l.id)}" aria-label="${esc(l.titolo)}, ${esc(l.autori)}: ${ETICHETTA_STATO[l.stato] || esc(l.stato)}">
+    ${copertina(l, true)}<h2>${esc(l.titolo)}</h2></button></li>`;
+}
+function disegnaRighe() {
+  const righe = [{ nome: "Ultimi arrivati", cat: "", libri: [...LIBRI].sort(recenti) }]
+    .concat(CATEGORIE.map(c => ({ nome: c, cat: c, libri: LIBRI.filter(l => l.categoria === c).sort(recenti) })))
+    .filter(r => r.libri.length);
+  $("#righe").innerHTML = righe.map(r => `
+    <section class="riga" aria-label="${esc(r.nome)}">
+      <h2>${esc(r.nome)} <small>${r.libri.length} libri</small>${r.cat ? `<a href="#scaffale=${encodeURIComponent(r.cat)}" data-cat="${esc(r.cat)}">Vedi tutti →</a>` : ""}</h2>
+      <ul>${r.libri.slice(0, PER_RIGA).map(tessera).join("")}
+        ${r.cat && r.libri.length > PER_RIGA ? `<li><a class="ancora" href="#scaffale=${encodeURIComponent(r.cat)}" data-cat="${esc(r.cat)}">Tutti i ${r.libri.length} libri<br>di ${esc(r.nome)} →</a></li>` : ""}
+      </ul>
+    </section>`).join("");
 }
 
 function risultati() {
@@ -390,14 +433,15 @@ function risultati() {
 }
 
 function disegna() {
+  const home = !filtro.q && !filtro.categoria;
+  $("#righe").hidden = !home;
+  $("#risultati").hidden = home;
+  if (home) { disegnaRighe(); $("#messaggio").hidden = true; return; }
+  $("#titolo-risultati").textContent = filtro.categoria ? filtro.categoria : `Risultati per «${filtro.q}»`;
   const r = risultati();
   const disp = r.filter(l => l.stato === "disponibile").length;
   $("#conteggio").textContent = r.length === 1 ? "1 libro" : `${r.length} libri, ${disp} disponibili`;
-  $("#libri").innerHTML = r.map(l => `
-    <li><button class="libro" type="button" data-id="${esc(l.id)}" aria-label="${esc(l.titolo)}, ${esc(l.autori)}: ${ETICHETTA_STATO[l.stato] || esc(l.stato)}">
-      ${copertina(l, true)}
-      <h2>${esc(l.titolo)}</h2>
-    </button></li>`).join("");
+  $("#libri").innerHTML = r.map(tessera).join("");
   if (r.length) $("#messaggio").hidden = true;
   else if (!LIBRI.length) messaggio("Il catalogo è ancora vuoto", "I libri arrivano presto: torna a dare un'occhiata.");
   else messaggio("Nessun libro trovato", filtro.q ? `Niente per «${filtro.q}». Prova con un'altra parola o togli i filtri.` : "Prova a togliere i filtri.");
@@ -410,11 +454,21 @@ function messaggio(titolo, testo) {
 
 $("#q").addEventListener("input", e => { filtro.q = e.target.value.trim(); $("#svuota").hidden = !e.target.value; disegna(); });
 $("#svuota").addEventListener("click", () => { $("#q").value = ""; filtro.q = ""; $("#svuota").hidden = true; $("#q").focus(); disegna(); });
-$("#scaffali").addEventListener("click", e => {
-  const b = e.target.closest("button"); if (!b) return;
-  filtro.categoria = b.dataset.cat;
-  document.querySelectorAll("#scaffali button").forEach(x => x.setAttribute("aria-pressed", x === b));
+function vaiAScaffale(cat) {
+  filtro.categoria = cat;
   disegna();
+  history.replaceState(null, "", cat ? "#scaffale=" + encodeURIComponent(cat) : location.pathname + location.search);
+  if (cat) $("#risultati").scrollIntoView({ block: "start", behavior: "smooth" });
+}
+$("#righe").addEventListener("click", e => {
+  const a = e.target.closest("a[data-cat]"); if (!a) return;
+  e.preventDefault(); vaiAScaffale(a.dataset.cat);
+});
+$("#righe").addEventListener("click", e => { const b = e.target.closest(".libro"); if (b) apri(b.dataset.id); });
+$("#indietro").addEventListener("click", () => {
+  filtro.categoria = ""; $("#q").value = ""; filtro.q = ""; $("#svuota").hidden = true;
+  vaiAScaffale("");
+  scrollTo({ top: 0, behavior: "smooth" });
 });
 $("#disponibili").addEventListener("change", e => { filtro.soloDisponibili = e.target.checked; disegna(); });
 $("#ordine").addEventListener("change", e => { filtro.ordine = e.target.value; disegna(); });
@@ -554,7 +608,7 @@ dialogo.addEventListener("click", e => {
   const ric = e.target.closest("[data-richiedi]"); if (ric) return formRichiesta(LIBRI.find(x => x.id === ric.dataset.richiedi));
   const ann = e.target.closest("[data-annulla]"); if (ann) $("#prestito").innerHTML = zonaPrestito(LIBRI.find(x => x.id === ann.dataset.annulla));
 });
-dialogo.addEventListener("close", () => history.replaceState(null, "", location.pathname + location.search));
+dialogo.addEventListener("close", () => history.replaceState(null, "", filtro.categoria ? "#scaffale=" + encodeURIComponent(filtro.categoria) : location.pathname + location.search));
 
 // quando si apre la tastiera del telefono, il campo in cui si scrive resta in vista
 (window.visualViewport || window).addEventListener("resize", () => {
@@ -564,7 +618,9 @@ dialogo.addEventListener("close", () => history.replaceState(null, "", location.
 
 // link diretto a un libro: …/biblioteca/#L0012
 function apriDaIndirizzo() {
-  const id = decodeURIComponent(location.hash.slice(1));
+  const h = decodeURIComponent(location.hash.slice(1));
+  if (h.startsWith("scaffale=")) { const c = h.slice(9); if (CATEGORIE.includes(c) && filtro.categoria !== c) { filtro.categoria = c; disegna(); } return; }
+  const id = h;
   if (id && !dialogo.open && LIBRI.some(l => l.id === id)) apri(id);
 }
 window.addEventListener("hashchange", apriDaIndirizzo);
