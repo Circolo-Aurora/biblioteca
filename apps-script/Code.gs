@@ -689,8 +689,10 @@ function corrisponde_(titolo, autori, tTrovato, aTrovati, diario) {
   if (perche.every(Boolean)) return scarta(perche[perche.length - 1]);
   const cognome = cognome_(autori);
   if (!cognome) return true;
-  if (norm_(aTrovati.join(" ")).indexOf(cognome.slice(0, 4)) < 0) return scarta("autore diverso da " + cognome);
-  return true;
+  if (norm_(aTrovati.join(" ") + " " + tTrovato).indexOf(cognome.slice(0, 4)) >= 0) return true;   // vale anche nel sottotitolo ("Colloquio di Mario Telò…")
+  // senza autori nella fonte (capita con i libri vecchi): va bene solo se il titolo coincide parola per parola
+  if (!aTrovati.length && forme.some(b => b.length === a.length && dentro(a, b))) return true;
+  return scarta(aTrovati.length ? "autore diverso da " + cognome : "fonte senza autore e titolo non identico");
 }
 
 // Cerca per titolo e autore: Open Library, poi Google Books (prima una ricerca stretta, poi una larga).
