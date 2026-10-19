@@ -421,12 +421,12 @@ function cercaCopertine() {
   console.log("finito: " + fatti + " controllati, " + trovate + " copertine trovate.");
 }
 
-// Per i libri SENZA ISBN: cerca per titolo e autore su Google Books e Open Library. Se la corrispondenza è buona
-// scrive la copertina e, in "isbn_trovato", l'ISBN dell'edizione trovata (non va in "isbn": è un'altra edizione,
-// la copertina può essere diversa dalla copia fisica). Stessa logica a tempo di cercaCopertine: rilanciare fino a "finito".
+// Per i libri SENZA ISBN: cerca la copertina per titolo e autore su Open Library e Google Books. Se la corrispondenza
+// è buona scrive la copertina e, come dato accessorio, l'ISBN dell'edizione trovata in "isbn_trovato" (non in "isbn":
+// è un'altra edizione, la copertina può essere diversa dalla copia fisica). Stessa logica a tempo di cercaCopertine: rilanciare fino a "finito".
 // Se Google risponde "troppe richieste" (429) si ferma: riprovare dopo qualche ora, o mettere una chiave API
 // di Google Books nelle proprietà dello script (GOOGLE_BOOKS_KEY).
-function cercaIsbnMancanti() {
+function cercaCopertinePerTitolo() {
   const inizio = Date.now();
   const sh = tab_("Libri");
   const testa = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(h => String(h).trim());
