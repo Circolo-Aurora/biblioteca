@@ -461,6 +461,7 @@ function corrisponde_(titolo, autori, tTrovato, aTrovati) {
   const dentro = (x, y) => x.every(w => y.indexOf(w) >= 0);
   // il titolo trovato deve contenere tutte le nostre parole; se è più lungo, al massimo del doppio (evita "Racconti" → "Racconti di Natale" con un solo termine)
   if (!dentro(a, b) || b.length > a.length * 2 + 1) return false;
+  if (a.length === 1 && b.length > 1) return false;   // titoli di una parola sola: serve corrispondenza esatta
   const primo = String(autori || "").split(",")[0].trim();
   if (!primo || /^aa\.?\s?vv/i.test(primo)) return true;
   const cognome = norm_(primo).split(" ").filter(Boolean).pop();
