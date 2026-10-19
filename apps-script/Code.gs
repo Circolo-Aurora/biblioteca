@@ -590,8 +590,8 @@ function cartellaCopertine_() {
 // Segna in "copertina_cercata" cosa ha provato, così non riprova. Lavora 4 minuti e mezzo, salva, e si
 // riprogramma da sola dopo un minuto finché non ha finito: si lancia UNA volta dall'editor e si segue
 // l'avanzamento nel tab Log (riga "copertine"). Per fermarla prima: fermaCopertine.
-// Se Google risponde "troppe richieste" (429) si ferma: riprovare dopo qualche ora, o mettere una chiave API
-// di Google Books nelle proprietà dello script (GOOGLE_BOOKS_KEY).
+// Se Google risponde "troppe richieste" (429: quota giornaliera di 1000, si azzera alle 9 ora italiana) aspetta
+// mezz'ora e riprova da sola. La quota si alza da Google Cloud (Quote → Books API → Queries per day).
 function cercaCopertine() {
   const inizio = Date.now();
   const sh = tab_("Libri");
@@ -621,7 +621,13 @@ function cercaCopertine() {
     if (k && !marca) url = copertinaPerIsbn_(k);
     if (!url) {
       try { const e = cercaPerTitolo_(titolo, String(r[cAut - 1] || "")); if (e) { url = e.copertina; isbnTrovato = e.isbn; } }
-      catch (e) { if (/429/.test(String(e))) { chiudi("Google Books: troppe richieste. Riprova tra qualche ora, o imposta GOOGLE_BOOKS_KEY. (" + fatti + " controllati, " + trovate + " trovate)"); fermaCopertine(); return; } }
+      catch (e) {
+        if (/429/.test(String(e))) {   // quota di Google esaurita (1000 al giorno, si azzera alle 9 ora italiana): riprova da sola ogni mezz'ora
+          chiudi("Pausa: quota Google Books esaurita, riprovo tra mezz'ora. " + String(e).replace(/^Error: /, "") + " (" + fatti + " controllati, " + trovate + " trovate)");
+          riprogramma_("cercaCopertine", 30);
+          return;
+        }
+      }
     }
     if (url) { cop[i][0] = url; if (isbnTrovato && !k) trov[i][0] = isbnTrovato; trovate++; } else restano++;
     cerc[i][0] = (k ? "isbn+titolo " : "titolo ") + Utilities.formatDate(new Date(), FUSO, "dd/MM/yyyy HH:mm");
@@ -718,24 +724,17 @@ function cercaPerTitolo_(titolo, autori, diario) {
   const cognome = cognome_(autori), base = titoloBase_(titolo);
   const key = PropertiesService.getScriptProperties().getProperty("GOOGLE_BOOKS_KEY");
   const nota = m => { if (diario) diario.push("  " + m); };
-  // 1) Google Books: stretta (titolo esatto, autore, italiano) poi larga (parole libere, qualunque lingua).
+  // 1) Google Books, una sola ricerca a parole libere (quella "stretta" con intitle/inauthor non trovava mai niente).
   //    country=IT è obbligatorio dai server di Apps Script, altrimenti 403 "Cannot determine user location".
-  const ricerche = [
-    "intitle:" + encodeURIComponent('"' + base + '"') + (cognome ? "+inauthor:" + encodeURIComponent(cognome) : "") + "&langRestrict=it",
-    encodeURIComponent(base + (cognome ? " " + cognome : ""))
-  ];
-  for (const q of ricerche) {
+  {
     Utilities.sleep(key ? 150 : 500);
-    const r = googleBooks_("https://www.googleapis.com/books/v1/volumes?q=" + q + "&maxResults=8&printType=books&country=IT" + (key ? "&key=" + key : ""));
-    if (r.getResponseCode() === 429) throw new Error("429 troppe richieste");
-    if (r.getResponseCode() !== 200) {
-      let perche = ""; try { perche = JSON.parse(r.getContentText()).error.message; } catch (e) {}
-      nota("Google Books: risposta " + r.getResponseCode() + (perche ? " — " + perche : ""));
-      if (r.getResponseCode() === 403) break;
-      continue;
-    }
-    const items = JSON.parse(r.getContentText()).items || [];
-    nota("Google Books (" + (q.indexOf("intitle") === 0 ? "stretta" : "larga") + "): " + items.length + " risultati");
+    const q = encodeURIComponent(base + (cognome ? " " + cognome : ""));
+    const r = googleBooks_("https://www.googleapis.com/books/v1/volumes?q=" + q + "&maxResults=10&printType=books&country=IT" + (key ? "&key=" + key : ""));
+    let perche = ""; if (r.getResponseCode() !== 200) { try { perche = JSON.parse(r.getContentText()).error.message; } catch (e) {} }
+    if (r.getResponseCode() === 429) throw new Error("429 troppe richieste: " + perche);
+    if (r.getResponseCode() !== 200) nota("Google Books: risposta " + r.getResponseCode() + (perche ? " — " + perche : ""));
+    const items = r.getResponseCode() === 200 ? JSON.parse(r.getContentText()).items || [] : [];
+    if (r.getResponseCode() === 200) nota("Google Books: " + items.length + " risultati");
     for (const it of items) {
       const vi = it.volumeInfo || {};
       const img = vi.imageLinks && (vi.imageLinks.thumbnail || vi.imageLinks.smallThumbnail);
