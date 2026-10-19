@@ -453,15 +453,12 @@ function disegna() {
   const home = !filtro.q && !filtro.categoria;
   $("#righe").hidden = !home;
   $("#risultati").hidden = home;
-  if (home) { disegnaRighe(); $("#messaggio").hidden = true; $("#q").placeholder = `Cerca tra ${LIBRI.length} libri…`; return; }
+  if (home) { disegnaRighe(); $("#messaggio").hidden = true; return; }
   const r = risultati();
   const disp = r.filter(l => l.stato === "disponibile").length;
   const nScaffale = filtro.categoria ? LIBRI.filter(l => l.categoria === filtro.categoria).length : 0;
-  $("#titolo-risultati").innerHTML = filtro.q
-    ? `Risultati per «${esc(filtro.q)}»${filtro.categoria ? ` <small>in ${esc(filtro.categoria)}</small>` : ""}`
-    : `${esc(filtro.categoria)} <small>${nScaffale} libri</small>`;
-  // dentro uno scaffale la casella cerca solo lì; il bottone "Tutti" allarga a tutto il catalogo
-  $("#q").placeholder = filtro.categoria ? `Cerca in ${filtro.categoria}…` : `Cerca tra ${LIBRI.length} libri…`;
+  $("#titolo-risultati").innerHTML = filtro.q ? `Risultati per «${esc(filtro.q)}»` : `${esc(filtro.categoria)} <small>${nScaffale} libri</small>`;
+  $("#scaffali").hidden = !!filtro.q;   // i bottoni degli scaffali solo nella vista scaffale
   $("#scaffali").innerHTML = ["", ...CATEGORIE].map(c =>
     `<button type="button" data-cat="${esc(c)}" aria-pressed="${filtro.categoria === c}">${c ? esc(c) : "Tutti"}</button>`).join("");
   $("#conteggio").textContent = r.length === 1 ? "1 libro" : `${r.length} libri, ${disp} disponibili`;
@@ -479,6 +476,7 @@ function messaggio(titolo, testo) {
 $("#q").addEventListener("input", e => {
   const prima = filtro.q;
   filtro.q = e.target.value.trim(); $("#svuota").hidden = !e.target.value;
+  if (filtro.q && filtro.categoria) { filtro.categoria = ""; history.replaceState(null, "", location.pathname + location.search); }   // la ricerca è sempre su tutto il catalogo
   disegna();
 });
 $("#svuota").addEventListener("click", () => { $("#q").value = ""; filtro.q = ""; $("#svuota").hidden = true; $("#q").focus(); disegna(); });
