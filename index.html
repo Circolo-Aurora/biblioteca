@@ -121,6 +121,18 @@ button,input,select{font:inherit;color:inherit}
 .copertina.occupato::after{content:"";position:absolute;inset:0;background:rgba(243,229,227,.55)}
 .copertina .fascia{position:absolute;z-index:1;left:0;right:0;bottom:0;background:var(--inchiostro);color:var(--pagina);font:700 .7rem/1 var(--testo);padding:6px 4px;text-align:center}
 
+.miei-link{margin:-4px 0 6px;text-align:right}
+.miei-link .link{border:0;background:none;padding:0;font:400 1.15rem/1.2 var(--mano);color:var(--inchiostro);text-decoration:underline;cursor:pointer}
+.miei-gruppo{margin:14px 0 0}
+.miei-gruppo h3{font:400 1.35rem/1.1 var(--mano);margin:0 0 6px}
+.miei-riga{display:grid;grid-template-columns:52px 1fr;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--rosa-scuro)}
+.miei-riga .copertina{width:52px}
+.miei-riga .copertina .t,.miei-riga .copertina .a{display:none}
+.miei-riga b{display:block}
+.miei-riga span{color:var(--grigio);font-size:.92rem}
+.miei-riga span.scaduto{color:var(--rosso);font-weight:700}
+.miei-numeri{display:flex;gap:18px;margin:4px 0 8px;font:400 1.1rem/1.2 var(--mano)}
+.miei-numeri b{font-size:1.9rem;color:var(--rosso);font-weight:400;display:block;line-height:1}
 .suggerisci{padding:10px 0 34px;color:var(--grigio)}
 .suggerisci p{margin:0}
 .suggerisci .link,.messaggio .link{border:0;background:none;padding:0;font:inherit;color:var(--inchiostro);text-decoration:underline;cursor:pointer}
@@ -193,9 +205,10 @@ form.richiesta input[aria-invalid="true"]{border-color:var(--rosso);box-shadow:i
 .esito:empty{display:none}
 .esito.errore{color:var(--rosso)}
 form.richiesta .azioni .esito{flex-basis:100%}
-form.richiesta .azioni{position:sticky;bottom:0;z-index:2;display:flex;flex-wrap:wrap;gap:10px;margin:2px -20px 0;padding:12px 20px calc(14px + env(safe-area-inset-bottom));
+.a-destra{display:flex;justify-content:flex-end}
+form.richiesta .azioni{position:sticky;bottom:0;z-index:2;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px;margin:2px -20px 0;padding:12px 20px calc(14px + env(safe-area-inset-bottom));
   background:var(--pagina);border-top:1.5px solid var(--rosa-scuro)}
-form.richiesta .azioni [type="submit"]{flex:1;max-width:320px}
+form.richiesta .azioni [type="submit"]{min-width:200px}
 .fatto{padding:14px;border:2px solid var(--verde);border-radius:12px}
 .fatto h3{font:400 1.5rem/1.1 var(--mano);margin:0 0 4px;color:var(--verde)}
 .fatto p{margin:0}
@@ -241,6 +254,8 @@ form.richiesta .azioni [type="submit"]{flex:1;max-width:320px}
     <button class="svuota" id="svuota" type="button" aria-label="Cancella la ricerca" hidden>×</button>
   </div>
 
+  <p class="miei-link" id="miei-link" hidden><button class="link" type="button" id="apri-miei">I miei libri</button></p>
+
   <!-- home: una riga per scaffale, da scorrere in orizzontale -->
   <section class="righe" id="righe"></section>
 
@@ -270,6 +285,15 @@ form.richiesta .azioni [type="submit"]{flex:1;max-width:320px}
   </section>
 </main>
 
+<dialog id="dialogo-miei" aria-labelledby="miei-titolo">
+  <div class="maniglia" aria-hidden="true"></div>
+  <div class="scheda">
+    <button class="chiudi" type="button" aria-label="Chiudi" data-chiudi-miei>×</button>
+    <h2 id="miei-titolo" class="titolo-desiderio">I miei libri</h2>
+    <div id="miei"></div>
+  </div>
+</dialog>
+
 <dialog id="dialogo-desiderio" aria-labelledby="desiderio-titolo">
   <div class="maniglia" aria-hidden="true"></div>
   <div class="scheda">
@@ -285,7 +309,6 @@ form.richiesta .azioni [type="submit"]{flex:1;max-width:320px}
       <div class="azioni">
         <p class="esito" id="esito-desiderio" aria-live="polite"></p>
         <button class="bottone" type="submit">Invia il suggerimento</button>
-        <button class="bottone chiaro" type="button" data-chiudi-desiderio>Annulla</button>
       </div>
     </form>
   </div>
@@ -601,7 +624,7 @@ function zonaPrestito(l) {
   if (l.stato === "prenotato") return `<p>Qualcuno l'ha già chiesto in prestito. Torna a controllare tra qualche settimana.</p>`;
   if (l.stato === "in prestito") return `<p>Ora è in prestito. Torna a controllare più avanti.</p>`;
   return `<p>Lascia nome e contatti: ti scriviamo quando è pronto e lo ritiri in biblioteca negli orari di apertura.</p>
-    <button class="bottone" type="button" data-richiedi="${esc(l.id)}">Chiedi in prestito</button>`;
+    <div class="a-destra"><button class="bottone" type="button" data-richiedi="${esc(l.id)}">Chiedi in prestito</button></div>`;
 }
 
 function formRichiesta(l) {
@@ -609,13 +632,12 @@ function formRichiesta(l) {
     <form class="richiesta" id="form-richiesta" novalidate>
       <h3>Chiedi in prestito</h3>
       <p class="nota">Ti scriviamo quando il libro è pronto da ritirare.</p>
-      <label>Nome e cognome<input name="nome" required autocomplete="name" enterkeyhint="next"></label>
-      <label>Email<input name="email" type="email" required autocomplete="email" inputmode="email" enterkeyhint="next"></label>
-      <label>Telefono<input name="telefono" type="tel" required autocomplete="tel" inputmode="tel" enterkeyhint="send"></label>
+      <label>Nome e cognome<input name="nome" required autocomplete="name" enterkeyhint="next" value="${esc(io.nome || "")}"></label>
+      <label>Email<input name="email" type="email" required autocomplete="email" inputmode="email" enterkeyhint="next" value="${esc(io.email || "")}"></label>
+      <label>Telefono<input name="telefono" type="tel" required autocomplete="tel" inputmode="tel" enterkeyhint="send" value="${esc(io.telefono || "")}"></label>
       <div class="azioni">
         <p class="esito" id="esito" aria-live="polite"></p>
         <button class="bottone" type="submit">Invia la richiesta</button>
-        <button class="bottone chiaro" type="button" data-annulla="${esc(l.id)}">Annulla</button>
       </div>
     </form>`;
   const f = $("#form-richiesta");
@@ -648,8 +670,9 @@ function formRichiesta(l) {
     const bottone = f.querySelector('[type="submit"]');
     bottone.disabled = true; bottone.textContent = "Invio…";
     const email = f.email.value.trim();
+    const chiave = chiavePersonale();
     const r = API_URL
-      ? await invia({ azione: "richiesta", id_libro: l.id, nome: f.nome.value.trim(), email, telefono: f.telefono.value.trim() })
+      ? await invia({ azione: "richiesta", id_libro: l.id, nome: f.nome.value.trim(), email, telefono: f.telefono.value.trim(), chiave })
       : { ok: true, prova: true };
     if (r.ok) {
       const conferma = r.mail === false
@@ -659,6 +682,9 @@ function formRichiesta(l) {
         <p>${conferma} Quando il libro è pronto ti contattiamo: lo ritiri nella biblioteca del Circolo.</p>
         ${r.prova ? `<p class="esito">Anteprima: non è stato inviato niente.</p>` : ""}</div>`;
       $("#prestito").scrollIntoView({ block: "nearest", behavior: "smooth" });
+      io = { nome: f.nome.value.trim(), email, telefono: f.telefono.value.trim() };
+      try { localStorage.setItem(CHIAVE_IO, JSON.stringify(io)); } catch {}
+      mostraMiei();
       if (!r.prova) { l.stato = "prenotato"; disegna(); salvaCopiaLocale(); aggiornaStatoScheda(l); }
     } else if (r.stato) {
       // nel frattempo l'ha chiesto qualcun altro
@@ -727,6 +753,72 @@ function apriDaIndirizzo() {
   if (id && !dialogo.open && LIBRI.some(l => l.id === id)) apri(id);
 }
 window.addEventListener("hashchange", apriDaIndirizzo);
+
+/* ---------- chiave personale e "I miei libri" ----------
+   Nessun login: una chiave casuale, creata alla prima richiesta di prestito, resta nel telefono e nel link
+   della mail di conferma (…/?chiave=…). Con la chiave il sito mostra i prestiti di quella persona. */
+const CHIAVE_PERSONALE = "biblioteca-aurora-chiave", CHIAVE_IO = "biblioteca-aurora-io";
+let io = {};
+try { io = JSON.parse(localStorage.getItem(CHIAVE_IO)) || {}; } catch {}
+function chiavePersonale() {
+  let k = "";
+  try { k = localStorage.getItem(CHIAVE_PERSONALE) || ""; } catch {}
+  if (!/^[a-z0-9]{16,64}$/.test(k)) {
+    k = Array.from(crypto.getRandomValues(new Uint8Array(16)), b => (b % 36).toString(36)).join("");
+    try { localStorage.setItem(CHIAVE_PERSONALE, k); } catch {}
+  }
+  return k;
+}
+function haChiave() { try { return /^[a-z0-9]{16,64}$/.test(localStorage.getItem(CHIAVE_PERSONALE) || ""); } catch { return false; } }
+function mostraMiei() { $("#miei-link").hidden = !haChiave(); }
+// arrivo dal link della mail: la chiave passa a questo telefono
+(() => {
+  const k = new URLSearchParams(location.search).get("chiave");
+  if (k && /^[a-z0-9]{16,64}$/.test(k)) {
+    try { localStorage.setItem(CHIAVE_PERSONALE, k); } catch {}
+    history.replaceState(null, "", location.pathname + location.hash);
+    addEventListener("load", () => apriMiei());
+  }
+})();
+mostraMiei();
+
+const dialogoMiei = $("#dialogo-miei");
+async function apriMiei() {
+  $("#miei").innerHTML = `<p class="sotto-desiderio">Carico…</p>`;
+  dialogoMiei.showModal();
+  const r = API_URL ? await invia({ azione: "miei", chiave: chiavePersonale() }) : { ok: true, nome: "Mattia", oggi: "2026-10-19", prestiti: [
+    { id_prestito: "P0001", id_libro: "L0013", titolo: "Il ladro di fulmini", autori: "Rick Riordan", categoria: "Fantasy e avventura", stato: "in prestito", data_ritiro: "2026-09-01", scadenza: "2026-11-01" },
+    { id_prestito: "P0002", id_libro: "L0009", titolo: "Matilde", autori: "Roald Dahl", categoria: "Narrativa ragazzi", stato: "richiesto", data_richiesta: "2026-10-18" },
+    { id_prestito: "P0000", id_libro: "L0018", titolo: "Il Gruffalò", autori: "Julia Donaldson", categoria: "Albi illustrati", stato: "restituito", data_restituzione: "2026-08-20" }] };
+  if (!r.ok) { $("#miei").innerHTML = `<p class="sotto-desiderio">Non riesco a leggere i tuoi prestiti: riprova tra poco.</p>`; return; }
+  const oggi = r.oggi || new Date().toISOString().slice(0, 10);
+  const dataIt = s => { if (!s) return ""; const [a, m, g] = String(s).split("-"); return g ? `${g}/${m}/${a}` : s; };
+  const giorni = (a, b) => Math.round((new Date(a) - new Date(b)) / 86400000);
+  const p = r.prestiti || [];
+  const inCorso = p.filter(x => x.stato === "in prestito"), attesa = p.filter(x => x.stato === "richiesto"), letti = p.filter(x => x.stato === "restituito");
+  const riga = (x, testo, cls = "") => `<div class="miei-riga" data-id="${esc(x.id_libro)}">
+      ${copertina({ titolo: x.titolo, autori: x.autori, categoria: x.categoria, copertina: x.copertina, stato: "disponibile" }, false)}
+      <div><b>${esc(x.titolo)}</b><span class="${cls}">${testo}</span></div></div>`;
+  if (!p.length) {
+    $("#miei").innerHTML = `<p class="sotto-desiderio">Qui vedrai i libri che hai in prestito, le scadenze e quelli che hai già letto. Per ora non c'è niente: cerca un libro e chiedilo in prestito.</p>`;
+    return;
+  }
+  let h = `<p class="sotto-desiderio">${r.nome ? "Ciao " + esc(r.nome) + "! " : ""}Questa è la tua pagina: la ritrovi dal link nella mail di conferma, anche su un altro telefono.</p>
+    <div class="miei-numeri"><div><b>${letti.length}</b>libri letti</div><div><b>${inCorso.length}</b>in prestito</div>${attesa.length ? `<div><b>${attesa.length}</b>in attesa</div>` : ""}</div>`;
+  if (inCorso.length) h += `<section class="miei-gruppo"><h3>Da restituire</h3>` + inCorso.map(x => {
+    const d = x.scadenza ? giorni(x.scadenza, oggi) : null;
+    const t = d === null ? "in prestito" : d < 0 ? `scaduto da ${-d} giorni: riportalo in biblioteca` : d === 0 ? "scade oggi" : `entro il ${dataIt(x.scadenza)} (${d} giorni)`;
+    return riga(x, t, d !== null && d < 0 ? "scaduto" : "");
+  }).join("") + `</section>`;
+  if (attesa.length) h += `<section class="miei-gruppo"><h3>In attesa di ritiro</h3>` + attesa.map(x => riga(x, `richiesto il ${dataIt(x.data_richiesta)}: ti scriviamo quando è pronto`)).join("") + `</section>`;
+  if (letti.length) h += `<section class="miei-gruppo"><h3>Già letti</h3>` + letti.map(x => riga(x, `restituito il ${dataIt(x.data_restituzione)}`)).join("") + `</section>`;
+  $("#miei").innerHTML = h;
+}
+$("#apri-miei").addEventListener("click", apriMiei);
+dialogoMiei.addEventListener("click", e => {
+  if (e.target === dialogoMiei || e.target.closest("[data-chiudi-miei]")) return dialogoMiei.close();
+  const r = e.target.closest(".miei-riga[data-id]"); if (r && LIBRI.some(l => l.id === r.dataset.id)) { dialogoMiei.close(); apri(r.dataset.id); }
+});
 
 /* ---------- suggerisci un libro ---------- */
 const dialogoDesiderio = $("#dialogo-desiderio");

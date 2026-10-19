@@ -131,7 +131,10 @@ form{display:grid;gap:12px}
 .libro-form .azioni .esito{flex-basis:100%}
 .libro-form .azioni{position:sticky;bottom:0;display:flex;flex-wrap:wrap;gap:10px;margin:4px -18px -20px;padding:12px 18px calc(14px + env(safe-area-inset-bottom));
   background:var(--pagina);border-top:1.5px solid var(--rosa-scuro);border-radius:0 0 14px 14px}
-.libro-form .azioni [type="submit"]{flex:1;max-width:320px}
+.libro-form .azioni{justify-content:flex-end}
+.libro-form .azioni [type="submit"]{order:3;min-width:180px}
+.libro-form .azioni #svuota{order:2}
+.libro-form .azioni #rimuovi{order:1;margin-right:auto}
 
 /* copertina: stessa resa del catalogo */
 .copertina{position:relative;container-type:inline-size;aspect-ratio:2/3;border-radius:2px 5px 5px 2px;overflow:hidden;color:var(--inchiostro);
@@ -150,6 +153,7 @@ form{display:grid;gap:12px}
 .piede{padding:16px 0 30px;font-size:.92rem}
 .piede a{color:var(--inchiostro)}
 .nascosto{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden}
+.a-destra{display:flex;justify-content:flex-end}
 .spunta{display:flex;align-items:center;gap:8px;color:var(--inchiostro);font-size:.95rem;cursor:pointer}
 .spunta input{width:20px;height:20px;accent-color:var(--inchiostro);margin:0}
 
@@ -197,7 +201,7 @@ form{display:grid;gap:12px}
       <label>Password<input type="password" name="password" autocomplete="current-password" enterkeyhint="go"></label>
       <label class="spunta"><input type="checkbox" name="ricorda" checked> Resta collegato su questo telefono</label>
       <p class="esito" id="esito-accesso" aria-live="polite"></p>
-      <div><button class="bottone" type="submit">Entra</button></div>
+      <div class="a-destra"><button class="bottone" type="submit">Entra</button></div>
     </form>
   </section>
 
@@ -208,7 +212,6 @@ form{display:grid;gap:12px}
     <button type="button" data-scheda="aggiungi">Aggiungi</button>
     <button type="button" data-scheda="modifica">Modifica</button>
     <button type="button" data-scheda="desideri">Desideri <span class="pallino" id="n-desideri" hidden></span></button>
-    <a class="link esci" href="./">Catalogo</a>
   </nav>
 
   <!-- PRESTITI -->

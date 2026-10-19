@@ -54,7 +54,7 @@ const URL_SITO = "https://circolo-aurora.github.io/biblioteca/";
 
 const TAB = {
   Libri:    ["id", "isbn", "titolo", "autori", "editore", "anno", "categoria", "copertina", "trama", "stato", "data_inserimento", "collana", "genere", "copie", "copertina_cercata", "isbn_trovato"],
-  Prestiti: ["id_prestito", "id_libro", "titolo", "nome", "email", "telefono", "data_richiesta", "data_ritiro", "data_restituzione", "stato", "scadenza"],
+  Prestiti: ["id_prestito", "id_libro", "titolo", "nome", "email", "telefono", "data_richiesta", "data_ritiro", "data_restituzione", "stato", "scadenza", "chiave"],
   Desideri: ["id_desiderio", "data", "titolo", "autore", "nota", "nome", "email", "stato"],
   Rimossi:  ["id", "isbn", "titolo", "autori", "editore", "anno", "categoria", "copertina", "trama", "stato", "data_inserimento", "collana", "genere", "copie", "data_rimozione", "motivo"],
   Log:      ["timestamp", "azione", "id", "dettaglio"],
@@ -113,6 +113,7 @@ function doPost(e) {
       case "login":         out = login_(d); break;
       case "aggiungiLibro": out = aggiungiLibro_(d); break;
       case "richiesta":     out = richiesta_(d); break;
+      case "miei":          out = miei_(d); break;
       case "caricaCopertina": out = caricaCopertina_(d); break;
       case "prestiti":      out = prestiti_(d); break;
       case "cambiaPrestito": out = cambiaPrestito_(d); break;
@@ -207,6 +208,8 @@ function aggiungiLibro_(d) {
 function richiesta_(d) {
   const nome = pulisci_(d.nome, 120), email = pulisci_(d.email, 200), telefono = pulisci_(d.telefono, 40);
   if (!nome || !email || !telefono) throw new Error("Compila nome, email e telefono.");
+  // chiave personale: generata dal sito alla prima richiesta e conservata nel telefono; identifica "i miei libri"
+  const chiave = /^[a-z0-9]{16,64}$/.test(String(d.chiave || "")) ? String(d.chiave) : "";
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("L'indirizzo email non sembra giusto: controllalo.");
 
   const lock = LockService.getScriptLock();
@@ -225,7 +228,7 @@ function richiesta_(d) {
     scriviRiga_("Prestiti", {
       id_prestito: id, id_libro: libro.id, titolo: libro.titolo,
       nome: nome, email: email, telefono: telefono,
-      data_richiesta: new Date(), stato: "richiesto"
+      data_richiesta: new Date(), stato: "richiesto", chiave: chiave
     });
     impostaStatoLibro_(libro.id, "prenotato");
     SpreadsheetApp.flush();
@@ -237,12 +240,12 @@ function richiesta_(d) {
 
   // da qui la richiesta è registrata: un problema con le mail non la fa risultare fallita
   let mail = true;
-  try { mailRichiedente_(libro, nome, email); } catch (err) { mail = false; console.error("Conferma non inviata: " + err); }
+  try { mailRichiedente_(libro, nome, email, chiave); } catch (err) { mail = false; console.error("Conferma non inviata: " + err); }
   try { mailBibliotecaria_(libro, id, nome, email, telefono); } catch (err) { console.error("Avviso non inviato: " + err); }
   return { ok: true, id: id, mail: mail };
 }
 
-function mailRichiedente_(libro, nome, email) {
+function mailRichiedente_(libro, nome, email, chiave) {
   const bibliotecaria = PropertiesService.getScriptProperties().getProperty("EMAIL_BIBLIOTECARIA");
   const opzioni = {
     to: email,
@@ -257,6 +260,9 @@ function mailRichiedente_(libro, nome, email) {
       "Quando il libro è pronto ti contattiamo: lo ritiri nella biblioteca del Circolo negli orari di apertura e lo puoi tenere fino a due mesi.",
       "",
       "Se hai cambiato idea, rispondi a questa mail.",
+      "",
+      "I tuoi libri, le scadenze e la tua storia di lettura sono qui (il link vale anche su un altro telefono):",
+      URL_SITO + (chiave ? "?chiave=" + chiave : ""),
       "",
       NOME_MITTENTE + " — Leccio",
       URL_SITO
@@ -310,6 +316,24 @@ function allineaPrestiti_(range) {
   if (!tocca(cStato)) return;   // colonna stato non toccata
   for (let r = Math.max(2, range.getRow()); r <= range.getLastRow(); r++) applicaStatoPrestito_(sh, r, String(sh.getRange(r, cStato).getValue()).trim());
   cacheSvuota_("catalogo");
+}
+
+// "I miei libri": i prestiti legati a una chiave personale (nessun login: la chiave sta nel telefono
+// e nel link della mail di conferma). Restituisce solo i dati del prestito e del libro, niente contatti.
+function miei_(d) {
+  const chiave = String(d.chiave || "");
+  if (!/^[a-z0-9]{16,64}$/.test(chiave)) return { ok: true, prestiti: [] };
+  const libri = {}; leggiTab_("Libri").forEach(l => { libri[String(l.id)] = l; });
+  const campi = ["id_prestito", "id_libro", "titolo", "data_richiesta", "data_ritiro", "data_restituzione", "stato", "scadenza"];
+  let nome = "";
+  const prestiti = leggiTab_("Prestiti").filter(r => String(r.chiave || "") === chiave).map(r => {
+    const o = {}; campi.forEach(k => { o[k] = formatta_(r[k]); });
+    const l = libri[String(r.id_libro)] || {};
+    o.autori = formatta_(l.autori); o.copertina = formatta_(l.copertina); o.categoria = formatta_(l.categoria);
+    nome = formatta_(r.nome) || nome;
+    return o;
+  });
+  return { ok: true, nome: nome.split(" ")[0], prestiti: prestiti, oggi: formatta_(new Date()) };
 }
 
 // ---- Area riservata: prestiti ------------------------------------------------------
