@@ -674,13 +674,19 @@ function cognome_(autori) {
   return norm_(primo).split(" ").filter(w => w.length > 1).pop() || "";
 }
 function corrisponde_(titolo, autori, tTrovato, aTrovati, diario) {
-  const a = parole_(titoloBase_(titolo)), b = parole_(tTrovato);
+  const a = parole_(titoloBase_(titolo));
+  // il titolo trovato vale sia intero sia senza sottotitolo (dopo i due punti): basta che una delle due forme vada bene
+  const forme = [parole_(tTrovato)]; if (tTrovato.indexOf(":") > 0) forme.unshift(parole_(tTrovato.split(":")[0]));
   const scarta = m => { if (diario) diario.push("    scartato «" + tTrovato + "» (" + (aTrovati || []).join(", ") + "): " + m); return false; };
-  if (!a.length || !b.length) return scarta("titolo vuoto");
   const dentro = (x, y) => x.every(w => y.indexOf(w) >= 0);
-  if (!dentro(a, b)) return scarta("non contiene tutte le parole del nostro titolo");
-  if (b.length > a.length * 2 + 1) return scarta("titolo troppo diverso");
-  if (a.length === 1 && b.length > 1) return scarta("titolo di una parola: serve uguale");
+  const perche = forme.map(b => {
+    if (!a.length || !b.length) return "titolo vuoto";
+    if (!dentro(a, b)) return "non contiene tutte le parole del nostro titolo";
+    if (b.length > a.length * 2 + 1) return "titolo troppo diverso";
+    if (a.length === 1 && b.length > 1) return "titolo di una parola: serve uguale";
+    return "";
+  });
+  if (perche.every(Boolean)) return scarta(perche[perche.length - 1]);
   const cognome = cognome_(autori);
   if (!cognome) return true;
   if (norm_(aTrovati.join(" ")).indexOf(cognome.slice(0, 4)) < 0) return scarta("autore diverso da " + cognome);
@@ -729,7 +735,7 @@ function cercaPerTitolo_(titolo, autori, diario) {
       const vi = it.volumeInfo || {};
       const img = vi.imageLinks && (vi.imageLinks.thumbnail || vi.imageLinks.smallThumbnail);
       if (!img) { nota("    «" + (vi.title || "") + "» senza copertina"); continue; }
-      if (!corrisponde_(titolo, autori, (vi.title || "") + " " + (vi.subtitle || ""), vi.authors || [], diario)) continue;
+      if (!corrisponde_(titolo, autori, (vi.title || "") + (vi.subtitle ? ": " + vi.subtitle : ""), vi.authors || [], diario)) continue;
       const id13 = (vi.industryIdentifiers || []).find(x => x.type === "ISBN_13");
       return { copertina: img.replace(/^http:/, "https:").replace("&edge=curl", ""), isbn: id13 ? id13.identifier : "" };
     }
