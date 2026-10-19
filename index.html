@@ -64,11 +64,14 @@ button,input,select{font:inherit;color:inherit}
 .numeri b{font-weight:400;color:var(--rosso)}
 
 /* ---------- home a righe ---------- */
-.righe{display:grid;grid-template-columns:minmax(0,1fr);gap:26px;padding:18px 0 40px}
+.righe{display:grid;grid-template-columns:minmax(0,1fr);padding:8px 0 40px}
+.riga{padding:18px 0 14px;border-top:1.5px solid var(--rosa-scuro)}
+.riga:first-child{border-top:0;padding-top:12px}
 .riga{min-width:0}
-.riga h2{display:flex;align-items:baseline;gap:10px;margin:0 0 10px;font:400 1.55rem/1.1 var(--mano)}
-.riga h2 small{font:400 .95rem/1 var(--testo);color:var(--grigio)}
-.riga h2 a{margin-left:auto;font:400 1.05rem/1 var(--mano);color:var(--inchiostro);white-space:nowrap}
+.riga h2{display:flex;align-items:center;gap:8px;margin:0 0 10px;font:400 1.3rem/1.1 var(--mano)}
+.riga h2 svg{width:26px;height:26px;flex:none;stroke:var(--inchiostro);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.riga h2 small{font:400 .88rem/1 var(--testo);color:var(--grigio);margin-left:2px}
+.riga h2 a{margin-left:auto;font:400 .95rem/1 var(--testo);color:var(--inchiostro);white-space:nowrap}
 .riga ul{list-style:none;margin:0 -16px;padding:4px 16px 8px;display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .riga ul::-webkit-scrollbar{display:none}
 .riga li{flex:0 0 31%;max-width:150px;scroll-snap-align:start}
@@ -396,6 +399,27 @@ function usa(d) {
   apriDaIndirizzo();
 }
 
+/* ---------- icone degli scaffali (tratto semplice, stesso stile del disegno in testata) ----------
+   La chiave è il nome dello scaffale nel foglio Config; se manca si usa il libro generico. */
+const ICONE = {
+  "Ultimi arrivati":     '<path d="M4 20V6l4-2v16M8 20V4l4 2v14M12 20V8l5-3 3 2v13"/><path d="M14 11l1.2-1 1.3 1"/>',
+  "Bambini":             '<circle cx="12" cy="8" r="4"/><path d="M5 21c0-4 3-6 7-6s7 2 7 6"/><path d="M9 3.5l-1.5-2M15 3.5l1.5-2"/>',
+  "Narrativa italiana":  '<path d="M4 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H4z"/><path d="M20 4h-6v13a2 2 0 0 1 2-2h4z"/>',
+  "Narrativa straniera": '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/>',
+  "Booktok":             '<rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 6h2M12 15l-2.2-2.1a1.4 1.4 0 0 1 2.2-1.8 1.4 1.4 0 0 1 2.2 1.8z"/>',
+  "Storia":              '<path d="M4 20h16M6 20V9M10 20V9M14 20V9M18 20V9M3 9l9-5 9 5z"/>',
+  "Locale":              '<path d="M3 21l6-10 4 6 2-3 6 7z"/><path d="M14 4v6M11 6h6"/>',
+  "Politica":            '<path d="M4 10v4h3l9 5V5L7 10z"/><path d="M19 9a4 4 0 0 1 0 6"/>',
+  "Filosofia":           '<path d="M8 4a4 4 0 0 1 8 0v4c0 3-2 4-4 4s-4-1-4-4z"/><circle cx="10" cy="7" r=".6" fill="currentColor"/><circle cx="14" cy="7" r=".6" fill="currentColor"/><path d="M9 12l-3 8h12l-3-8"/>',
+  "Psicologia":          '<path d="M9 21v-3a7 7 0 1 1 6 0v3"/><path d="M9 11c1-1 2-1 3 0s2 1 3 0"/>',
+  "Pedagogia":           '<path d="M12 7c-4 0-6 2-6 6s2 7 6 7 6-3 6-7-2-6-6-6z"/><path d="M12 7V4M12 4c2-1 3 0 3 1"/>',
+  "Psicopedagogia":      '<path d="M9 21v-3a7 7 0 1 1 6 0v3"/><path d="M12 8v6M9 11h6"/>',
+  "Insegnamento":        '<path d="M4 4h16v11H4z"/><path d="M8 19h8M12 15v4"/><path d="M7 11l3-3 3 2 4-4"/>',
+  "Autoaiuto":           '<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/>',
+  "_":                   '<path d="M4 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H4z"/><path d="M20 4h-6v13a2 2 0 0 1 2-2h4z"/>'
+};
+const icona = nome => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONE[nome] || ICONE._}</svg>`;
+
 /* ---------- home a righe: ultimi arrivati, poi uno scaffale per riga ---------- */
 const PER_RIGA = 12;
 const recenti = (a, b) => String(b.data_inserimento || "").localeCompare(String(a.data_inserimento || "")) || String(b.id).localeCompare(String(a.id));
@@ -409,7 +433,7 @@ function disegnaRighe() {
     .filter(r => r.libri.length);
   $("#righe").innerHTML = righe.map(r => `
     <section class="riga" aria-label="${esc(r.nome)}">
-      <h2>${esc(r.nome)} <small>${r.libri.length} libri</small>${r.cat ? `<a href="#scaffale=${encodeURIComponent(r.cat)}" data-cat="${esc(r.cat)}">Vedi tutti →</a>` : ""}</h2>
+      <h2>${icona(r.nome)}${esc(r.nome)} <small>${r.libri.length} libri</small>${r.cat ? `<a href="#scaffale=${encodeURIComponent(r.cat)}" data-cat="${esc(r.cat)}">Vedi tutti →</a>` : ""}</h2>
       <ul>${r.libri.slice(0, PER_RIGA).map(tessera).join("")}
         ${r.cat && r.libri.length > PER_RIGA ? `<li><a class="ancora" href="#scaffale=${encodeURIComponent(r.cat)}" data-cat="${esc(r.cat)}">Tutti i ${r.libri.length} libri<br>di ${esc(r.nome)} →</a></li>` : ""}
       </ul>
@@ -457,7 +481,8 @@ $("#svuota").addEventListener("click", () => { $("#q").value = ""; filtro.q = ""
 function vaiAScaffale(cat) {
   filtro.categoria = cat;
   disegna();
-  history.replaceState(null, "", cat ? "#scaffale=" + encodeURIComponent(cat) : location.pathname + location.search);
+  if (cat) history.pushState(null, "", "#scaffale=" + encodeURIComponent(cat));
+  else history.replaceState(null, "", location.pathname + location.search);
   if (cat) $("#risultati").scrollIntoView({ block: "start", behavior: "smooth" });
 }
 $("#righe").addEventListener("click", e => {
@@ -620,6 +645,7 @@ dialogo.addEventListener("close", () => history.replaceState(null, "", filtro.ca
 function apriDaIndirizzo() {
   const h = decodeURIComponent(location.hash.slice(1));
   if (h.startsWith("scaffale=")) { const c = h.slice(9); if (CATEGORIE.includes(c) && filtro.categoria !== c) { filtro.categoria = c; disegna(); } return; }
+  if (!h && filtro.categoria) { filtro.categoria = ""; disegna(); return; }   // tasto Indietro: dallo scaffale alla home
   const id = h;
   if (id && !dialogo.open && LIBRI.some(l => l.id === id)) apri(id);
 }

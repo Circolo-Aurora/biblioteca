@@ -472,7 +472,21 @@ function cercaPerTitolo_(titolo, autori) {
   const primo = String(autori || "").split(",")[0].trim();
   const cognome = /^aa\.?\s?vv/i.test(primo) ? "" : norm_(primo).split(" ").filter(Boolean).pop() || "";
   const key = PropertiesService.getScriptProperties().getProperty("GOOGLE_BOOKS_KEY");
-  // 1) Google Books
+  // 1) Open Library (senza limiti di quota)
+  const u = "https://openlibrary.org/search.json?title=" + encodeURIComponent(titolo.split(/[.:]/)[0].trim()) + (cognome ? "&author=" + encodeURIComponent(cognome) : "") + "&limit=5&fields=title,author_name,cover_i,isbn,language";
+  try {
+    const o = UrlFetchApp.fetch(u, { muteHttpExceptions: true });
+    if (o.getResponseCode() === 200) {
+      for (const d of JSON.parse(o.getContentText()).docs || []) {
+        if (!d.cover_i) continue;
+        if (!corrisponde_(titolo, autori, d.title || "", d.author_name || [])) continue;
+        const isbn = (d.isbn || []).find(x => /^97[89]\d{10}$/.test(x)) || "";
+        return { copertina: "https://covers.openlibrary.org/b/id/" + d.cover_i + "-M.jpg", isbn: isbn };
+      }
+    }
+  } catch (e) {}
+  // 2) Google Books (quota limitata senza chiave: una richiesta ogni mezzo secondo)
+  Utilities.sleep(500);
   let q = "intitle:" + encodeURIComponent('"' + titolo.split(/[.:]/)[0].trim() + '"') + (cognome ? "+inauthor:" + encodeURIComponent(cognome) : "");
   const r = UrlFetchApp.fetch("https://www.googleapis.com/books/v1/volumes?q=" + q + "&maxResults=5&langRestrict=it" + (key ? "&key=" + key : ""), { muteHttpExceptions: true });
   if (r.getResponseCode() === 429) throw new Error("429");
@@ -485,17 +499,6 @@ function cercaPerTitolo_(titolo, autori) {
       if (!corrisponde_(titolo, autori, (vi.title || "") + " " + (vi.subtitle || ""), vi.authors || [])) continue;
       const id13 = (vi.industryIdentifiers || []).find(x => x.type === "ISBN_13");
       return { copertina: img.replace(/^http:/, "https:").replace("&edge=curl", ""), isbn: id13 ? id13.identifier : "" };
-    }
-  }
-  // 2) Open Library
-  const u = "https://openlibrary.org/search.json?title=" + encodeURIComponent(titolo.split(/[.:]/)[0].trim()) + (cognome ? "&author=" + encodeURIComponent(cognome) : "") + "&limit=5&fields=title,author_name,cover_i,isbn,language";
-  const o = UrlFetchApp.fetch(u, { muteHttpExceptions: true });
-  if (o.getResponseCode() === 200) {
-    for (const d of JSON.parse(o.getContentText()).docs || []) {
-      if (!d.cover_i) continue;
-      if (!corrisponde_(titolo, autori, d.title || "", d.author_name || [])) continue;
-      const isbn = (d.isbn || []).find(x => /^97[89]\d{10}$/.test(x)) || "";
-      return { copertina: "https://covers.openlibrary.org/b/id/" + d.cover_i + "-M.jpg", isbn: isbn };
     }
   }
   return null;
