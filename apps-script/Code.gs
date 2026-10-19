@@ -52,7 +52,7 @@ const NOME_MITTENTE = "Biblioteca del Circolo ARCI Aurora";   // nome che compar
 const URL_SITO = "https://circolo-aurora.github.io/biblioteca/";
 
 const TAB = {
-  Libri:    ["id", "isbn", "titolo", "autori", "editore", "anno", "categoria", "copertina", "trama", "stato", "data_inserimento", "collana", "genere", "copie", "copertina_cercata"],
+  Libri:    ["id", "isbn", "titolo", "autori", "editore", "anno", "categoria", "copertina", "trama", "stato", "data_inserimento", "collana", "genere", "copie", "copertina_cercata", "isbn_trovato"],
   Prestiti: ["id_prestito", "id_libro", "titolo", "nome", "email", "telefono", "data_richiesta", "data_ritiro", "data_restituzione", "stato", "scadenza"],
   Desideri: ["data", "titolo", "autore", "nota", "nome", "email", "stato"],
   Log:      ["timestamp", "azione", "id", "dettaglio"],
@@ -419,6 +419,85 @@ function cercaCopertine() {
   }
   cacheSvuota_("catalogo");
   console.log("finito: " + fatti + " controllati, " + trovate + " copertine trovate.");
+}
+
+// Per i libri SENZA ISBN: cerca per titolo e autore su Google Books e Open Library. Se la corrispondenza è buona
+// scrive la copertina e, in "isbn_trovato", l'ISBN dell'edizione trovata (non va in "isbn": è un'altra edizione,
+// la copertina può essere diversa dalla copia fisica). Stessa logica a tempo di cercaCopertine: rilanciare fino a "finito".
+// Se Google risponde "troppe richieste" (429) si ferma: riprovare dopo qualche ora, o mettere una chiave API
+// di Google Books nelle proprietà dello script (GOOGLE_BOOKS_KEY).
+function cercaIsbnMancanti() {
+  const inizio = Date.now();
+  const sh = tab_("Libri");
+  const testa = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(h => String(h).trim());
+  const c = n => { const i = testa.indexOf(n); if (i < 0) throw new Error("Manca la colonna " + n + ": esegui setup."); return i + 1; };
+  const cIsbn = c("isbn"), cTit = c("titolo"), cAut = c("autori"), cCop = c("copertina"), cCerc = c("copertina_cercata"), cTrov = c("isbn_trovato");
+  const n = sh.getLastRow() - 1;
+  if (n < 1) return;
+  const v = sh.getRange(2, 1, n, sh.getLastColumn()).getValues();
+  let fatti = 0, trovate = 0;
+  for (let i = 0; i < n; i++) {
+    if (Date.now() - inizio > 270000) { console.log("Tempo scaduto: " + fatti + " cercati, " + trovate + " trovati. Rilancia per continuare."); return; }
+    const r = v[i];
+    if (r[cIsbn - 1] || r[cCop - 1] || r[cCerc - 1] || !r[cTit - 1]) continue;
+    let esito;
+    try { esito = cercaPerTitolo_(String(r[cTit - 1]), String(r[cAut - 1] || "")); }
+    catch (e) { if (/429/.test(String(e))) { console.log("Google Books: troppe richieste. Riprova tra qualche ora. (" + fatti + " cercati, " + trovate + " trovati)"); return; } esito = null; }
+    if (esito) { sh.getRange(i + 2, cCop).setValue(esito.copertina); if (esito.isbn) sh.getRange(i + 2, cTrov).setValue(esito.isbn); trovate++; }
+    sh.getRange(i + 2, cCerc).setValue(new Date());
+    fatti++;
+  }
+  cacheSvuota_("catalogo");
+  console.log("finito: " + fatti + " cercati, " + trovate + " copertine trovate.");
+}
+
+// Confronto: tutte le parole "significative" del nostro titolo devono stare nel titolo trovato (o viceversa)
+// e il cognome del primo autore deve comparire tra gli autori trovati.
+function norm_(s) { return String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim(); }
+function parole_(s) { return norm_(s).split(" ").filter(w => w.length > 2 && ["the", "and", "del", "della", "dei", "degli", "delle", "con", "per", "una", "uno", "gli", "nel", "nella"].indexOf(w) < 0); }
+function corrisponde_(titolo, autori, tTrovato, aTrovati) {
+  const a = parole_(titolo.split(/[.:]/)[0]), b = parole_(tTrovato);
+  if (!a.length || !b.length) return false;
+  const dentro = (x, y) => x.every(w => y.indexOf(w) >= 0);
+  // il titolo trovato deve contenere tutte le nostre parole; se è più lungo, al massimo del doppio (evita "Racconti" → "Racconti di Natale" con un solo termine)
+  if (!dentro(a, b) || b.length > a.length * 2 + 1) return false;
+  const primo = String(autori || "").split(",")[0].trim();
+  if (!primo || /^aa\.?\s?vv/i.test(primo)) return true;
+  const cognome = norm_(primo).split(" ").filter(Boolean).pop();
+  return !cognome || norm_(aTrovati.join(" ")).indexOf(cognome) >= 0;
+}
+
+function cercaPerTitolo_(titolo, autori) {
+  const primo = String(autori || "").split(",")[0].trim();
+  const cognome = /^aa\.?\s?vv/i.test(primo) ? "" : norm_(primo).split(" ").filter(Boolean).pop() || "";
+  const key = PropertiesService.getScriptProperties().getProperty("GOOGLE_BOOKS_KEY");
+  // 1) Google Books
+  let q = "intitle:" + encodeURIComponent('"' + titolo.split(/[.:]/)[0].trim() + '"') + (cognome ? "+inauthor:" + encodeURIComponent(cognome) : "");
+  const r = UrlFetchApp.fetch("https://www.googleapis.com/books/v1/volumes?q=" + q + "&maxResults=5&langRestrict=it" + (key ? "&key=" + key : ""), { muteHttpExceptions: true });
+  if (r.getResponseCode() === 429) throw new Error("429");
+  if (r.getResponseCode() === 200) {
+    const items = JSON.parse(r.getContentText()).items || [];
+    for (const it of items) {
+      const vi = it.volumeInfo || {};
+      const img = vi.imageLinks && (vi.imageLinks.thumbnail || vi.imageLinks.smallThumbnail);
+      if (!img) continue;
+      if (!corrisponde_(titolo, autori, (vi.title || "") + " " + (vi.subtitle || ""), vi.authors || [])) continue;
+      const id13 = (vi.industryIdentifiers || []).find(x => x.type === "ISBN_13");
+      return { copertina: img.replace(/^http:/, "https:").replace("&edge=curl", ""), isbn: id13 ? id13.identifier : "" };
+    }
+  }
+  // 2) Open Library
+  const u = "https://openlibrary.org/search.json?title=" + encodeURIComponent(titolo.split(/[.:]/)[0].trim()) + (cognome ? "&author=" + encodeURIComponent(cognome) : "") + "&limit=5&fields=title,author_name,cover_i,isbn,language";
+  const o = UrlFetchApp.fetch(u, { muteHttpExceptions: true });
+  if (o.getResponseCode() === 200) {
+    for (const d of JSON.parse(o.getContentText()).docs || []) {
+      if (!d.cover_i) continue;
+      if (!corrisponde_(titolo, autori, d.title || "", d.author_name || [])) continue;
+      const isbn = (d.isbn || []).find(x => /^97[89]\d{10}$/.test(x)) || "";
+      return { copertina: "https://covers.openlibrary.org/b/id/" + d.cover_i + "-M.jpg", isbn: isbn };
+    }
+  }
+  return null;
 }
 
 function copertinaPerIsbn_(isbn) {
