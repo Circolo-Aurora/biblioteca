@@ -166,6 +166,13 @@ La bibliotecaria cambia solo la colonna `stato` del tab Prestiti: il trigger `on
 - [x] Allineamento automatico libro ↔ prestito quando si cambia lo stato nel foglio
 - [x] Scansione del codice a barre nell'area riservata (BarcodeDetector del browser, altrimenti `barcode-detector@3.2.0` da jsDelivr)
 
+### Area riservata (admin.html) — stato attuale
+- [x] Scheda **Prestiti**: da preparare / in prestito (con ritardi in evidenza) / chiusi di recente; bottoni Consegnato, Restituito, Annulla, Riapri (`prestiti`, `cambiaPrestito`)
+- [x] Scheda **Aggiungi**: ISBN, scansione, collana, foto
+- [x] Scheda **Modifica**: ricerca nel catalogo, stessa scheda del libro con ISBN e stato modificabili, Rimuovi (la riga passa nel tab `Rimossi`) (`modificaLibro`)
+- [x] Scheda **Desideri**: suggerimenti dal sito con Acquistato / Scarta (`desideri`, `cambiaDesiderio`)
+- [x] Sito: "Suggerisci un libro" in fondo alla pagina e nei risultati vuoti (`desiderio`, mail alla bibliotecaria)
+
 ### Fase 3 — Gestione prestiti
 - [ ] Trigger giornaliero: reminder 7 giorni prima della scadenza e alla scadenza
 - [ ] (eventuale) mini dashboard nell'area riservata: richieste aperte, prestiti in corso, scaduti
