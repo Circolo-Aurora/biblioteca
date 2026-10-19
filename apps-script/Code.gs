@@ -707,18 +707,19 @@ function cercaPerTitolo_(titolo, autori, diario) {
       }
     } else nota("Open Library: risposta " + o.getResponseCode());
   } catch (e) { nota("Open Library: errore " + e); }
-  // 2) Google Books: stretta (titolo esatto, autore, italiano) poi larga (parole libere, qualunque lingua)
+  // 2) Google Books: stretta (titolo esatto, autore, italiano) poi larga (parole libere, qualunque lingua).
+  //    country=IT è obbligatorio dai server di Apps Script, altrimenti 403 "Cannot determine user location".
   const ricerche = [
     "intitle:" + encodeURIComponent('"' + base + '"') + (cognome ? "+inauthor:" + encodeURIComponent(cognome) : "") + "&langRestrict=it",
     encodeURIComponent(base + (cognome ? " " + cognome : ""))
   ];
   for (const q of ricerche) {
     Utilities.sleep(500);
-    const r = UrlFetchApp.fetch("https://www.googleapis.com/books/v1/volumes?q=" + q + "&maxResults=8&printType=books" + (key ? "&key=" + key : ""), { muteHttpExceptions: true });
+    const r = UrlFetchApp.fetch("https://www.googleapis.com/books/v1/volumes?q=" + q + "&maxResults=8&printType=books&country=IT" + (key ? "&key=" + key : ""), { muteHttpExceptions: true });
     if (r.getResponseCode() === 429) throw new Error("429 troppe richieste");
     if (r.getResponseCode() !== 200) {
       let perche = ""; try { perche = JSON.parse(r.getContentText()).error.message; } catch (e) {}
-      nota("Google Books: risposta " + r.getResponseCode() + (perche ? " — " + perche : "") + (r.getResponseCode() === 403 ? " (chiave rifiutata: controlla che l'API Books sia abilitata nel progetto e che la chiave non abbia restrizioni)" : ""));
+      nota("Google Books: risposta " + r.getResponseCode() + (perche ? " — " + perche : ""));
       if (r.getResponseCode() === 403) break;
       continue;
     }
@@ -744,7 +745,8 @@ function copertinaPerIsbn_(isbn) {
     } catch (e) { return ""; }
   };
   try {
-    const r = UrlFetchApp.fetch("https://www.googleapis.com/books/v1/volumes?q=isbn:" + isbn + "&maxResults=1", { muteHttpExceptions: true });
+    const key = PropertiesService.getScriptProperties().getProperty("GOOGLE_BOOKS_KEY");
+    const r = UrlFetchApp.fetch("https://www.googleapis.com/books/v1/volumes?q=isbn:" + isbn + "&maxResults=1&country=IT" + (key ? "&key=" + key : ""), { muteHttpExceptions: true });
     const v = r.getResponseCode() === 200 ? (JSON.parse(r.getContentText()).items || [])[0] : null;
     const img = v && v.volumeInfo && v.volumeInfo.imageLinks && (v.volumeInfo.imageLinks.thumbnail || v.volumeInfo.imageLinks.smallThumbnail);
     if (img) return img.replace(/^http:/, "https:").replace("&edge=curl", "");
