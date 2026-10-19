@@ -129,8 +129,13 @@ button,input,select{font:inherit;color:inherit}
 dialog{border:0;padding:0;background:var(--pagina);color:var(--inchiostro);width:min(680px,100%);max-height:92vh;max-height:92dvh;overflow:auto;overscroll-behavior:contain;
   border-radius:16px;box-shadow:0 20px 60px rgba(46,38,36,.35)}
 dialog::backdrop{background:rgba(46,38,36,.45)}
+.maniglia{display:none}
 @media (max-width:640px){
-  dialog{margin:auto 0 0;max-width:100%;border-radius:16px 16px 0 0;max-height:94vh;max-height:94dvh}
+  dialog{margin:auto 0 0;max-width:100%;border-radius:16px 16px 0 0;max-height:94vh;max-height:94dvh;touch-action:pan-y}
+  dialog.trascinata{transition:none}
+  .maniglia{display:block;position:sticky;top:0;z-index:3;height:22px;background:var(--pagina)}
+  .maniglia::after{content:"";position:absolute;left:50%;top:8px;width:40px;height:5px;border-radius:3px;background:var(--rosa-scuro);transform:translateX(-50%)}
+  .scheda{padding-top:6px}
 }
 @media (prefers-reduced-motion:no-preference){
   dialog[open]{animation:entra .2s ease-out}
@@ -157,6 +162,11 @@ dialog::backdrop{background:rgba(46,38,36,.45)}
 .dove h3{font:400 1.45rem/1.1 var(--mano);margin:0 0 10px}
 .mappa{display:grid;grid-template-columns:repeat(2,1fr);gap:4px;border:2px solid var(--inchiostro);border-radius:4px;padding:4px;background:var(--pagina)}
 @media (min-width:640px){.mappa{grid-template-columns:repeat(4,1fr)}}
+/* mappa fisica: una colonna per scaffalatura, i ripiani dall'alto in basso */
+.mappa.fisica{grid-template-columns:repeat(var(--colonne),1fr);gap:0 10px;padding:6px 8px;overflow-x:auto}
+.mappa.fisica span{min-height:2.2em;font-size:.88rem;border-bottom:2.5px solid var(--inchiostro);padding:4px 5px 5px}
+.mappa.fisica span:empty{border-bottom-color:var(--rosa-scuro)}
+.mappa.fisica b{grid-row:1;font:400 .95rem/1.2 var(--mano);color:var(--grigio);text-align:center;padding-bottom:4px}
 .mappa span{padding:6px 6px 7px;font:400 .98rem/1.1 var(--mano);color:var(--grigio);border-bottom:2px solid var(--rosa-scuro);min-height:2.6em;display:flex;align-items:flex-end}
 .mappa span.qui{background:var(--rosso);color:#fff;border-color:var(--inchiostro);border-radius:3px}
 
@@ -264,6 +274,7 @@ form.richiesta .azioni [type="submit"]{flex:1;max-width:320px}
 </button>
 
 <dialog id="dialogo" aria-labelledby="scheda-titolo">
+  <div class="maniglia" id="maniglia" aria-hidden="true"></div>
   <div class="scheda" id="scheda"></div>
 </dialog>
 
@@ -395,6 +406,7 @@ function usa(d) {
   LIBRI = (d.libri || []).map(l => ({ ...l, _testo: norm([l.titolo, l.autori, l.editore, l.isbn, l.categoria, l.collana, l.genere].join(" ")) }));
   const usate = [...new Set(LIBRI.map(l => l.categoria).filter(Boolean))];
   CATEGORIE = (d.categorie?.length ? d.categorie : usate).filter(c => usate.includes(c));
+  MAPPA = d.mappa || null;
   if (filtro.categoria && !CATEGORIE.includes(filtro.categoria)) filtro.categoria = "";
   $("#q").placeholder = LIBRI.length ? `Cerca tra ${LIBRI.length} libri…` : "Titolo, autore, editore…";
   disegna();
@@ -441,13 +453,15 @@ function disegna() {
   const home = !filtro.q && !filtro.categoria;
   $("#righe").hidden = !home;
   $("#risultati").hidden = home;
-  if (home) { disegnaRighe(); $("#messaggio").hidden = true; return; }
+  if (home) { disegnaRighe(); $("#messaggio").hidden = true; $("#q").placeholder = `Cerca tra ${LIBRI.length} libri…`; return; }
   const r = risultati();
   const disp = r.filter(l => l.stato === "disponibile").length;
   const nScaffale = filtro.categoria ? LIBRI.filter(l => l.categoria === filtro.categoria).length : 0;
   $("#titolo-risultati").innerHTML = filtro.q
     ? `Risultati per «${esc(filtro.q)}»${filtro.categoria ? ` <small>in ${esc(filtro.categoria)}</small>` : ""}`
     : `${esc(filtro.categoria)} <small>${nScaffale} libri</small>`;
+  // dentro uno scaffale la casella cerca solo lì; il bottone "Tutti" allarga a tutto il catalogo
+  $("#q").placeholder = filtro.categoria ? `Cerca in ${filtro.categoria}…` : `Cerca tra ${LIBRI.length} libri…`;
   $("#scaffali").innerHTML = ["", ...CATEGORIE].map(c =>
     `<button type="button" data-cat="${esc(c)}" aria-pressed="${filtro.categoria === c}">${c ? esc(c) : "Tutti"}</button>`).join("");
   $("#conteggio").textContent = r.length === 1 ? "1 libro" : `${r.length} libri, ${disp} disponibili`;
@@ -465,7 +479,6 @@ function messaggio(titolo, testo) {
 $("#q").addEventListener("input", e => {
   const prima = filtro.q;
   filtro.q = e.target.value.trim(); $("#svuota").hidden = !e.target.value;
-  if (!prima && filtro.q && filtro.categoria) { filtro.categoria = ""; history.replaceState(null, "", location.pathname + location.search); }   // una ricerca nuova parte da tutto il catalogo
   disegna();
 });
 $("#svuota").addEventListener("click", () => { $("#q").value = ""; filtro.q = ""; $("#svuota").hidden = true; $("#q").focus(); disegna(); });
@@ -533,12 +546,27 @@ function apri(id) {
     ${l.trama ? `<p class="trama">${esc(l.trama)}</p>` : ""}
     ${l.categoria ? `<section class="dove">
       <h3>Lo trovi qui: ${esc(l.categoria)}</h3>
-      <div class="mappa">${CATEGORIE.map(c => `<span class="${c === l.categoria ? "qui" : ""}">${esc(c)}</span>`).join("")}</div>
+      ${mappaScaffali(l.categoria)}
     </section>` : ""}
     <section class="prestito" id="prestito">${zonaPrestito(l)}</section>`;
   if (!dialogo.open) dialogo.showModal();
   dialogo.scrollTop = 0;
   history.replaceState(null, "", "#" + l.id);
+}
+
+// MAPPA: dal foglio "Mappa" (ogni colonna una scaffalatura, prima riga il nome, sotto i ripiani dall'alto);
+// se il foglio non c'è, l'elenco degli scaffali in due colonne.
+let MAPPA = null;
+function mappaScaffali(cat) {
+  const qui = c => String(c || "").trim() === cat;
+  if (!MAPPA || !MAPPA.length) return `<div class="mappa">${CATEGORIE.map(c => `<span class="${qui(c) ? "qui" : ""}">${esc(c)}</span>`).join("")}</div>`;
+  const nCol = Math.max(...MAPPA.map(r => r.length));
+  const celle = [];
+  for (let r = 0; r < MAPPA.length; r++) for (let c = 0; c < nCol; c++) {
+    const v = String((MAPPA[r] || [])[c] || "").trim();
+    celle.push(r === 0 ? `<b>${esc(v)}</b>` : `<span class="${qui(v) ? "qui" : ""}">${esc(v)}</span>`);
+  }
+  return `<div class="mappa fisica" style="--colonne:${nCol}">${celle.join("")}</div>`;
 }
 
 function zonaPrestito(l) {
@@ -630,6 +658,30 @@ dialogo.addEventListener("click", e => {
   const ric = e.target.closest("[data-richiedi]"); if (ric) return formRichiesta(LIBRI.find(x => x.id === ric.dataset.richiedi));
   const ann = e.target.closest("[data-annulla]"); if (ann) $("#prestito").innerHTML = zonaPrestito(LIBRI.find(x => x.id === ann.dataset.annulla));
 });
+/* trascinando in giù dalla cima della scheda si chiude (come i pannelli delle app) */
+(() => {
+  let y0 = null, dy = 0, attivo = false;
+  dialogo.addEventListener("touchstart", e => {
+    if (innerWidth > 640 || dialogo.scrollTop > 0) return;
+    y0 = e.touches[0].clientY; dy = 0; attivo = true;
+  }, { passive: true });
+  dialogo.addEventListener("touchmove", e => {
+    if (!attivo || y0 === null) return;
+    dy = e.touches[0].clientY - y0;
+    if (dy < 0) { dy = 0; return; }
+    dialogo.classList.add("trascinata");
+    dialogo.style.transform = `translateY(${dy}px)`;
+  }, { passive: true });
+  const fine = () => {
+    if (!attivo) return;
+    attivo = false; y0 = null;
+    dialogo.classList.remove("trascinata");
+    if (dy > 90) { dialogo.style.transition = "transform .18s ease-in"; dialogo.style.transform = "translateY(100%)"; setTimeout(() => { dialogo.close(); dialogo.style.transition = ""; dialogo.style.transform = ""; }, 180); }
+    else { dialogo.style.transition = "transform .18s"; dialogo.style.transform = ""; setTimeout(() => dialogo.style.transition = "", 200); }
+  };
+  dialogo.addEventListener("touchend", fine); dialogo.addEventListener("touchcancel", fine);
+})();
+
 dialogo.addEventListener("close", () => history.replaceState(null, "", filtro.categoria ? "#scaffale=" + encodeURIComponent(filtro.categoria) : location.pathname + location.search));
 
 // quando si apre la tastiera del telefono, il campo in cui si scrive resta in vista

@@ -143,7 +143,7 @@ function catalogo_() {
       if (!o.stato) o.stato = "disponibile";
       return o;
     });
-  return { libri: libri, categorie: categorie_() };
+  return { libri: libri, categorie: categorie_(), mappa: mappa_() };
 }
 
 function login_(d) {
@@ -637,6 +637,14 @@ function scriviRiga_(nome, obj) {
 
 function log_(azione, id, dettaglio) {
   try { scriviRiga_("Log", { timestamp: new Date(), azione: azione, id: id, dettaglio: dettaglio }); } catch (err) { console.error(err); }
+}
+
+// Tab "Mappa" (facoltativo): disegno della scaffalatura. Ogni colonna è una scaffalatura (prima riga: il nome,
+// es. "Scaffale 1"), sotto i ripiani dall'alto in basso con il nome dello scaffale/categoria che ci sta.
+function mappa_() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Mappa");
+  if (!sh || sh.getLastRow() < 2) return null;
+  return sh.getDataRange().getValues().map(r => r.map(v => String(v || "").trim()));
 }
 
 function categorie_() {
