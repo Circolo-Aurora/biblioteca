@@ -128,7 +128,7 @@ Note tecniche:
 - Griglia dei libri con copertina, titolo, autori, stato.
 - Scheda libro: dati completi, scaffale ("Lo trovi qui: Narrativa per ragazzi"), pulsante "Richiedi in prestito" se disponibile.
 - Form di richiesta: nome, email, telefono → messaggio di conferma con le indicazioni per il ritiro.
-- **Area personale senza login** ("I miei libri"): alla prima richiesta di prestito (o al primo cuore) il sito crea una chiave casuale, la tiene in `localStorage` e la manda nel link della mail di conferma (`?chiave=…`), così la stessa pagina si ritrova su un altro telefono. Mostra prestiti in corso con scadenza, in attesa, già letti e i libri salvati con il cuore. È il seme per gamificazione e login vero quando ci sarà un database.
+- **Area personale senza login** ("I miei libri", icona-profilo nell'intestazione, con pallino rosso se un prestito scade entro 7 giorni): alla prima richiesta di prestito (o al primo cuore) il sito crea una chiave casuale, la tiene in `localStorage` e la manda nel link della mail di conferma (`?chiave=…`), così la stessa pagina si ritrova su un altro telefono. Mostra prestiti in corso con scadenza, in attesa, già letti e i preferiti. È il seme per gamificazione e login vero quando ci sarà un database.
 - **Cuore** sulla scheda del libro: salva/toglie dai preferiti; l'elenco sta nel telefono (subito) e nel tab `Preferiti` (per seguire la chiave).
 
 ### Copertine mancanti (dall'editor Apps Script)
