@@ -589,12 +589,17 @@ function cartellaCopertine_() {
 // e poi per titolo e autore (Google Books, poi Open Library); se trova per titolo scrive anche l'ISBN dell'edizione
 // trovata in "isbn_trovato" (non in "isbn": è un'altra edizione, la copertina può differire dalla copia fisica).
 // Segna in "copertina_cercata" cosa ha provato, così non riprova. Lavora 4 minuti e mezzo, salva, e si
-// riprogramma da sola dopo un minuto finché non ha finito: si lancia UNA volta dall'editor e si segue
-// l'avanzamento nel tab Log (riga "copertine"). Per fermarla prima: fermaCopertine.
+// riprogramma da sola dopo un minuto, al massimo MAX_RIPRESE volte per lancio: si lancia UNA volta dall'editor
+// e si segue l'avanzamento nel tab Log (righe "copertine"). Per fermarla prima: fermaCopertine.
 // Se Google risponde "troppe richieste" (429: quota giornaliera di 1000, si azzera alle 9 ora italiana) aspetta
 // mezz'ora e riprova da sola. La quota si alza da Google Cloud (Quote → Books API → Queries per day).
-function cercaCopertine() {
+const MAX_RIPRESE = 10;   // poi si ferma da sola: rilanciare a mano per continuare
+function cercaCopertine(e) {
   const inizio = Date.now();
+  const prop = PropertiesService.getScriptProperties();
+  if (!e) prop.setProperty("COPERTINE_RIPRESE", "0");   // lanciata a mano dall'editor: si riparte a contare
+  const riprese = Number(prop.getProperty("COPERTINE_RIPRESE") || 0);
+  if (riprese >= MAX_RIPRESE) { fermaCopertine(); log_("copertine", "", "Fermata dopo " + MAX_RIPRESE + " riprese: rilancia cercaCopertine per continuare."); return; }
   const sh = tab_("Libri");
   const testa = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(h => String(h).trim());
   const c = n => { const i = testa.indexOf(n); if (i < 0) throw new Error("Manca la colonna " + n + ": esegui setup."); return i + 1; };
@@ -614,17 +619,19 @@ function cercaCopertine() {
     const titoloFatto = /titolo/.test(String(marca)) || (marca instanceof Date && !k);
     if (titoloFatto) { restano++; continue; }
     if (Date.now() - inizio > 270000) {
-      chiudi("Pausa: " + fatti + " controllati, " + trovate + " copertine trovate. Riparte da sola tra un minuto.");
+      prop.setProperty("COPERTINE_RIPRESE", String(riprese + 1));
+      chiudi("Pausa " + (riprese + 1) + "/" + MAX_RIPRESE + ": " + fatti + " controllati, " + trovate + " copertine trovate. Riparte da sola tra un minuto.");
       riprogramma_("cercaCopertine", 1);
       return;
     }
     let url = "", isbnTrovato = "";
     if (k && !marca) url = copertinaPerIsbn_(k);
     if (!url) {
-      try { const e = cercaPerTitolo_(titolo, String(r[cAut - 1] || "")); if (e) { url = e.copertina; isbnTrovato = e.isbn; } }
-      catch (e) {
-        if (/429/.test(String(e))) {   // quota di Google esaurita (1000 al giorno, si azzera alle 9 ora italiana): riprova da sola ogni mezz'ora
-          chiudi("Pausa: quota Google Books esaurita, riprovo tra mezz'ora. " + String(e).replace(/^Error: /, "") + " (" + fatti + " controllati, " + trovate + " trovate)");
+      try { const t = cercaPerTitolo_(titolo, String(r[cAut - 1] || "")); if (t) { url = t.copertina; isbnTrovato = t.isbn; } }
+      catch (err) {
+        if (/429/.test(String(err))) {   // quota di Google esaurita (1000 al giorno, si azzera alle 9 ora italiana): riprova da sola ogni mezz'ora
+          prop.setProperty("COPERTINE_RIPRESE", String(riprese + 1));
+          chiudi("Pausa " + (riprese + 1) + "/" + MAX_RIPRESE + ": quota Google Books esaurita, riprovo tra mezz'ora. " + String(err).replace(/^Error: /, "") + " (" + fatti + " controllati, " + trovate + " trovate)");
           riprogramma_("cercaCopertine", 30);
           return;
         }

@@ -133,7 +133,7 @@ Note tecniche:
 
 ### Copertine mancanti (dall'editor Apps Script)
 Tre funzioni, da eseguire dall'editor (menu a tendina accanto a ▶ Esegui; il risultato nel "Registro di esecuzione" in basso):
-- `cercaCopertine`: per ogni libro senza copertina prova prima l'ISBN (Google Books, Open Library, Amazon) e poi titolo + autore (Google Books a parole libere, poi Open Library). Lavora 4 minuti e mezzo, salva a blocchi e si riprogramma da sola dopo un minuto (trigger a tempo) finché non ha finito: si lancia una volta e si segue nel tab `Log` (righe "copertine"). `fermaCopertine` interrompe. Segna in `copertina_cercata` cosa ha provato e non riprova. Al primo lancio chiede l'autorizzazione per i trigger.
+- `cercaCopertine`: per ogni libro senza copertina prova prima l'ISBN (Google Books, Open Library, Amazon) e poi titolo + autore (Google Books a parole libere, poi Open Library). Lavora 4 minuti e mezzo, salva a blocchi e si riprogramma da sola dopo un minuto (trigger a tempo), al massimo 10 volte per lancio, poi si ferma e lo scrive nel Log: si lancia una volta e si segue nel tab `Log` (righe "copertine"). `fermaCopertine` interrompe. Segna in `copertina_cercata` cosa ha provato e non riprova. Al primo lancio chiede l'autorizzazione per i trigger.
 - `riprovaCopertine`: svuota il segno dei libri ancora senza copertina (dopo aver corretto titoli/autori o messo la chiave Google). Poi di nuovo `cercaCopertine`.
 - `diagnosiCopertine`: non scrive niente; per i primi 12 libri senza copertina (o quelli con `?` in `copertina_cercata`) scrive nel registro cosa hanno risposto le fonti e perché ogni risultato è stato scartato.
 
