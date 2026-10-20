@@ -655,6 +655,32 @@ function fermaCopertine() {
   ScriptApp.getProjectTriggers().forEach(t => { if (t.getHandlerFunction() === "cercaCopertine") ScriptApp.deleteTrigger(t); });
 }
 
+// Copertine trovate a mano: tab "Importa" con colonne "id" (L0001…) oppure "isbn", e "copertina" (indirizzo immagine).
+// Scrive la copertina sul libro corrispondente (anche sopra una vecchia) e nel Log elenca gli id non trovati.
+function importaCopertine() {
+  const righe = leggiTab_("Importa").filter(r => String(r.copertina || "").trim());
+  if (!righe.length) { console.log("Nel tab Importa non ci sono righe con la copertina."); return; }
+  const sh = tab_("Libri");
+  const testa = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(h => String(h).trim());
+  const cId = testa.indexOf("id") + 1, cIsbn = testa.indexOf("isbn") + 1, cCop = testa.indexOf("copertina") + 1;
+  const n = sh.getLastRow() - 1;
+  const ids = sh.getRange(2, cId, n).getValues().map(r => String(r[0]).trim());
+  const isbn = sh.getRange(2, cIsbn, n).getValues().map(r => normalizzaIsbn_(r[0]));
+  const cop = sh.getRange(2, cCop, n).getValues();
+  let messe = 0; const nonTrovati = [];
+  righe.forEach(r => {
+    let i = -1;
+    if (r.id) i = ids.indexOf(String(r.id).trim());
+    else if (r.isbn) i = isbn.indexOf(normalizzaIsbn_(r.isbn));
+    if (i < 0) { nonTrovati.push(r.id || r.isbn); return; }
+    cop[i][0] = String(r.copertina).trim(); messe++;
+  });
+  sh.getRange(2, cCop, n).setValues(cop);
+  cacheSvuota_("catalogo");
+  const msg = messe + " copertine importate." + (nonTrovati.length ? " Non trovati: " + nonTrovati.join(", ") : "");
+  console.log(msg); log_("copertine", "", "importa: " + msg);
+}
+
 // Cancella il segno "già cercato" dei libri ancora senza copertina, così cercaCopertine li riprova
 // (utile dopo aver corretto titoli/autori nel foglio o aggiunto la chiave di Google Books).
 function riprovaCopertine() {
