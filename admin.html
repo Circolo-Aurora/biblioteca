@@ -53,6 +53,10 @@ h2{font:400 2rem/1.05 var(--mano);margin:0 0 6px}
 .piede-righe{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center}
 .pallino{min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--rosso);color:#fff;font:700 .78rem/20px var(--testo);text-align:center}
 .schede button[aria-pressed="true"] .pallino{background:var(--pagina);color:var(--rosso)}
+.schede .ingranaggio{margin-left:auto;padding:5px 8px 6px}
+.schede .ingranaggio svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;display:block}
+.impostazioni-azioni{display:flex;gap:12px;justify-content:space-between;align-items:center}
+.impostazioni-azioni .link{text-align:left;font-size:.92rem}
 
 /* prestiti */
 .gruppo{margin:14px 0 0}
@@ -212,6 +216,7 @@ form{display:grid;gap:12px}
     <button type="button" data-scheda="aggiungi">Aggiungi</button>
     <button type="button" data-scheda="modifica">Modifica</button>
     <button type="button" data-scheda="desideri">Desideri <span class="pallino" id="n-desideri" hidden></span></button>
+    <button type="button" data-scheda="impostazioni" class="ingranaggio" aria-label="Impostazioni" title="Impostazioni"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
   </nav>
 
   <!-- PRESTITI -->
@@ -243,6 +248,25 @@ form{display:grid;gap:12px}
     <p class="sotto">Dal sito, "Suggerisci un libro". Quando lo compri, aggiungilo dalla scheda Aggiungi e segnalo qui come acquistato.</p>
     <p class="esito" id="esito-desideri" aria-live="polite"></p>
     <div id="desideri"></div>
+  </section>
+
+  <!-- IMPOSTAZIONI -->
+  <section class="pannello scheda-p" id="scheda-impostazioni" hidden>
+    <h2>Impostazioni</h2>
+    <p class="sotto" id="info-mail">Carico…</p>
+    <form id="form-impostazioni" novalidate>
+      <label>Chi riceve gli avvisi di richieste e suggerimenti<input name="EMAIL_BIBLIOTECARIA" type="text" inputmode="email" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+      <p class="aiuto">Uno o più indirizzi, separati da virgola.</p>
+      <label>A chi rispondono i lettori<input name="EMAIL_RISPOSTE" type="email" inputmode="email" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+      <p class="aiuto">Chi risponde alla mail di conferma scrive a questo indirizzo. Se è vuoto, al primo degli avvisi.</p>
+      <label>Orari di ritiro<input name="ORARI_RITIRO" type="text" autocomplete="off" placeholder="il martedì e il giovedì dalle 17 alle 19"></label>
+      <p class="aiuto">Compaiono nella mail di conferma e nella scheda del libro sul sito.</p>
+      <p class="esito" id="esito-impostazioni" aria-live="polite"></p>
+      <div class="impostazioni-azioni">
+        <button class="link" type="button" id="prova-mail">Salva e manda una mail di prova</button>
+        <button class="bottone" type="submit">Salva</button>
+      </div>
+    </form>
   </section>
 
   <!-- AGGIUNGI / scheda del libro (usata anche per la modifica) -->
@@ -460,12 +484,14 @@ function vaiAScheda(nome) {
   $("#scheda-prestiti").hidden = nome !== "prestiti";
   $("#scheda-modifica").hidden = nome !== "modifica";
   $("#scheda-desideri").hidden = nome !== "desideri";
+  $("#scheda-impostazioni").hidden = nome !== "impostazioni";
   $("#inserimento").hidden = !(nome === "aggiungi" || nome === "modifica-scheda");
   $("#aggiunti").hidden = nome !== "aggiungi" || !$("#lista-aggiunti").children.length;
   if (nome === "aggiungi" && libro.id.value) esciDaModifica();
   try { localStorage.setItem("biblioteca-scheda", nome === "modifica-scheda" ? "modifica" : nome); } catch {}
   if (nome === "prestiti") caricaPrestiti();
   if (nome === "desideri") caricaDesideri();
+  if (nome === "impostazioni") caricaImpostazioni();
   if (nome === "modifica") { caricaCatalogo(); $("#cerca-cat").focus(); }
   if (nome === "aggiungi" && !$("#scansiona").hidden) $("#scansiona").focus({ preventScroll: true });   // niente tastiera: prima la scansione
 }
@@ -551,6 +577,36 @@ $("#desideri").addEventListener("click", async e => {
   caricaDesideri();
 });
 $("#ricarica-desideri").addEventListener("click", caricaDesideri);
+
+/* ---------- impostazioni ---------- */
+const formImp = $("#form-impostazioni");
+function mostraImpostazioni(r) {
+  ["EMAIL_BIBLIOTECARIA", "EMAIL_RISPOSTE", "ORARI_RITIRO"].forEach(k => { formImp[k].value = r[k] || ""; });
+  formImp.EMAIL_RISPOSTE.placeholder = (r.EMAIL_BIBLIOTECARIA || "").split(",")[0].trim();
+  $("#info-mail").textContent = `Le mail partono dall'account ${r.mittente}${r.quota !== undefined ? `; oggi se ne possono mandare ancora ${r.quota}` : ""}.`;
+}
+async function caricaImpostazioni() {
+  const esito = $("#esito-impostazioni");
+  esito.className = "esito"; esito.textContent = "";
+  const r = await invia({ azione: "impostazioni", password: PASSWORD });
+  if (!r.ok) { esito.className = "esito errore"; esito.textContent = r.errore || "Non riesco a leggere le impostazioni."; return; }
+  mostraImpostazioni(r);
+}
+async function salvaImpostazioni(prova) {
+  const esito = $("#esito-impostazioni");
+  const bottone = prova ? $("#prova-mail") : formImp.querySelector('[type="submit"]');
+  const fine = inAttesa(bottone, prova ? "Invio…" : "Salvo…", esito);
+  const dati = { azione: "impostazioni", password: PASSWORD, salva: true, prova };
+  ["EMAIL_BIBLIOTECARIA", "EMAIL_RISPOSTE", "ORARI_RITIRO"].forEach(k => { dati[k] = formImp[k].value.trim(); });
+  const r = await invia(dati);
+  fine();
+  if (!r.ok) { esito.className = "esito errore"; esito.textContent = r.errore || "Non riesco a salvare."; return; }
+  mostraImpostazioni(r);
+  esito.className = "esito ok";
+  esito.textContent = prova ? `Salvato. Mail di prova inviata a ${r.EMAIL_BIBLIOTECARIA}: controlla anche lo spam.` : "Salvato.";
+}
+formImp.addEventListener("submit", e => { e.preventDefault(); salvaImpostazioni(false); });
+$("#prova-mail").addEventListener("click", () => salvaImpostazioni(true));
 
 /* ---------- modifica: ricerca nel catalogo ---------- */
 let CATALOGO = null;

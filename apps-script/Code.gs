@@ -31,7 +31,8 @@
  *      Config    → elenco delle categorie/scaffali (menu a tendina nel tab Libri e filtri del sito)
  * 4. Impostazioni progetto (⚙) → Proprietà script → aggiungi:
  *      ADMIN_PASSWORD        password dell'area riservata
- *      EMAIL_BIBLIOTECARIA   chi riceve le richieste di prestito (servirà dalla fase 2)
+ *      EMAIL_BIBLIOTECARIA   chi riceve gli avvisi (richieste, suggerimenti): uno o più indirizzi separati da virgola
+ *    Le impostazioni delle mail (avvisi, risposte, orari di ritiro) si cambiano poi dall'area riservata, scheda Impostazioni.
  * 5. Distribuisci → Nuova distribuzione → tipo "Applicazione web":
  *      Esegui come: Me · Chi ha accesso: Chiunque
  *    Copia l'URL (finisce con /exec) in API_URL di index.html e admin.html.
@@ -123,6 +124,7 @@ function doPost(e) {
       case "desiderio":     out = desiderio_(d); break;
       case "desideri":      out = desideri_(d); break;
       case "cambiaDesiderio": out = cambiaDesiderio_(d); break;
+      case "impostazioni":  out = impostazioni_(d); break;
       default: throw new Error("Azione non riconosciuta.");
     }
   } catch (err) {
@@ -154,7 +156,7 @@ function catalogo_() {
       if (!o.stato) o.stato = "disponibile";
       return o;
     });
-  return { libri: libri, categorie: categorie_(), mappa: mappa_() };
+  return { libri: libri, categorie: categorie_(), mappa: mappa_(), orari: impostazione_("ORARI_RITIRO") };
 }
 
 function login_(d) {
@@ -248,7 +250,7 @@ function richiesta_(d) {
 }
 
 function mailRichiedente_(libro, nome, email, chiave) {
-  const bibliotecaria = PropertiesService.getScriptProperties().getProperty("EMAIL_BIBLIOTECARIA");
+  const risposte = indirizzoRisposte_();
   const opzioni = {
     to: email,
     name: NOME_MITTENTE,
@@ -259,7 +261,7 @@ function mailRichiedente_(libro, nome, email, chiave) {
       "abbiamo ricevuto la tua richiesta di prestito per:",
       "«" + libro.titolo + "»" + (libro.autori ? " di " + libro.autori : ""),
       "",
-      "Quando il libro è pronto ti contattiamo: lo ritiri nella biblioteca del Circolo negli orari di apertura e lo puoi tenere fino a due mesi.",
+      "Quando il libro è pronto ti contattiamo: lo ritiri nella biblioteca del Circolo " + testoOrari_() + " e lo puoi tenere fino a due mesi.",
       "",
       "Se hai cambiato idea, rispondi a questa mail.",
       "",
@@ -270,12 +272,12 @@ function mailRichiedente_(libro, nome, email, chiave) {
       URL_SITO
     ].join("\n")
   };
-  if (bibliotecaria) opzioni.replyTo = bibliotecaria;
+  if (risposte) opzioni.replyTo = risposte;
   MailApp.sendEmail(opzioni);
 }
 
 function mailBibliotecaria_(libro, id, nome, email, telefono) {
-  const a = PropertiesService.getScriptProperties().getProperty("EMAIL_BIBLIOTECARIA");
+  const a = impostazione_("EMAIL_BIBLIOTECARIA");
   if (!a) return;
   MailApp.sendEmail({
     to: a,
@@ -353,6 +355,43 @@ function preferito_(d) {
   if (d.attivo && trovata < 0) scriviRiga_("Preferiti", { chiave: chiave, id_libro: id, data: new Date() });
   if (!d.attivo && trovata >= 0) sh.deleteRow(trovata + 2);
   return { ok: true, attivo: !!d.attivo };
+}
+
+// ---- Area riservata: impostazioni ---------------------------------------------------
+// Stanno nelle proprietà dello script (non nel foglio: chi apre il foglio non le cambia per sbaglio).
+//   EMAIL_BIBLIOTECARIA  chi riceve gli avvisi di richieste e suggerimenti (uno o più indirizzi, separati da virgola)
+//   EMAIL_RISPOSTE       a chi arrivano le risposte dei lettori alla mail di conferma (se vuoto: il primo degli avvisi)
+//   ORARI_RITIRO         es. "il martedì e il giovedì dalle 17 alle 19": nella mail di conferma e sul sito
+const IMPOSTAZIONI = ["EMAIL_BIBLIOTECARIA", "EMAIL_RISPOSTE", "ORARI_RITIRO"];
+function impostazione_(k) { return String(PropertiesService.getScriptProperties().getProperty(k) || "").trim(); }
+function indirizzoRisposte_() { return impostazione_("EMAIL_RISPOSTE") || impostazione_("EMAIL_BIBLIOTECARIA").split(",")[0].trim(); }
+function testoOrari_() { const o = impostazione_("ORARI_RITIRO"); return o ? "negli orari di apertura (" + o + ")" : "negli orari di apertura"; }
+
+function impostazioni_(d) {
+  verificaPassword_(d.password);
+  const prop = PropertiesService.getScriptProperties();
+  const mailOk = x => /^[^\s@,]+@[^\s@,]+\.[^\s@,]+$/.test(x);
+  if (d.salva) {
+    const avvisi = String(d.EMAIL_BIBLIOTECARIA || "").split(/[,;\s]+/).map(x => x.trim()).filter(Boolean);
+    const sbagliate = avvisi.filter(x => !mailOk(x));
+    if (sbagliate.length) throw new Error("Questo indirizzo non sembra giusto: " + sbagliate[0]);
+    const risposte = String(d.EMAIL_RISPOSTE || "").trim();
+    if (risposte && !mailOk(risposte)) throw new Error("L'indirizzo per le risposte non sembra giusto: " + risposte);
+    const valori = { EMAIL_BIBLIOTECARIA: avvisi.join(", "), EMAIL_RISPOSTE: risposte, ORARI_RITIRO: pulisci_(d.ORARI_RITIRO, 200) };
+    IMPOSTAZIONI.forEach(k => { if (valori[k]) prop.setProperty(k, valori[k]); else prop.deleteProperty(k); });
+    log_("impostazioni", "", IMPOSTAZIONI.map(k => k + "=" + (valori[k] || "—")).join(" · "));
+    cacheSvuota_("catalogo");   // gli orari si vedono anche sul sito
+  }
+  if (d.prova) {
+    const a = impostazione_("EMAIL_BIBLIOTECARIA");
+    if (!a) throw new Error("Prima scrivi almeno un indirizzo per gli avvisi e salva.");
+    MailApp.sendEmail({ to: a, name: NOME_MITTENTE, replyTo: indirizzoRisposte_(), subject: "Prova mail della biblioteca",
+      body: "Se leggi questa mail, gli avvisi delle richieste di prestito arrivano qui.\n\nRispondendo a una mail di conferma, i lettori scrivono a: " + indirizzoRisposte_() +
+        "\nOrari di ritiro nelle mail: " + testoOrari_() + "\n\n" + URL_SITO });
+  }
+  const o = { ok: true, quota: MailApp.getRemainingDailyQuota(), mittente: Session.getEffectiveUser().getEmail() };
+  IMPOSTAZIONI.forEach(k => { o[k] = impostazione_(k); });
+  return o;
 }
 
 // ---- Area riservata: prestiti ------------------------------------------------------
@@ -463,7 +502,7 @@ function desiderio_(d) {
     nome: pulisci_(d.nome, 120), email: email, stato: "nuovo" });
   log_("desiderio", id, titolo);
   try {
-    const a = PropertiesService.getScriptProperties().getProperty("EMAIL_BIBLIOTECARIA");
+    const a = impostazione_("EMAIL_BIBLIOTECARIA");
     if (a) MailApp.sendEmail({ to: a, name: NOME_MITTENTE, subject: "Libro suggerito: " + titolo,
       body: ["Qualcuno ha suggerito un libro per la biblioteca (" + id + ")", "", "Titolo: " + titolo, "Autore: " + (pulisci_(d.autore, 200) || "—"),
         "Nota: " + (pulisci_(d.nota, 500) || "—"), "", "Da: " + (pulisci_(d.nome, 120) || "anonimo") + (email ? " <" + email + ">" : ""),

@@ -109,6 +109,7 @@ Elenco delle categorie/scaffali (usato per la convalida e restituito al frontend
 | `login` | POST | `password` | ok / errore |
 | `miei` | POST | `chiave` | prestiti e preferiti di quella chiave (con dati del libro), `nome`, `oggi` |
 | `preferito` | POST | `chiave, id_libro, attivo` | aggiunge/toglie la riga in Preferiti |
+| `impostazioni` | POST | `password`, facoltativi `salva` + `EMAIL_BIBLIOTECARIA, EMAIL_RISPOSTE, ORARI_RITIRO`, `prova` | legge/salva le impostazioni (proprietà dello script); con `prova` manda una mail di prova agli avvisi; restituisce anche account mittente e mail rimaste oggi |
 | `aggiungiLibro` | POST | `password` + campi libro | `id` assegnato |
 
 Note tecniche:
@@ -191,6 +192,7 @@ La bibliotecaria cambia solo la colonna `stato` del tab Prestiti: il trigger `on
 - [x] Scheda **Aggiungi**: ISBN, scansione, collana, foto
 - [x] Scheda **Modifica**: ricerca nel catalogo, stessa scheda del libro con ISBN e stato modificabili, Rimuovi (la riga passa nel tab `Rimossi`) (`modificaLibro`)
 - [x] Scheda **Desideri**: suggerimenti dal sito con Acquistato / Scarta (`desideri`, `cambiaDesiderio`)
+- [x] Scheda **Impostazioni** (ingranaggio): chi riceve gli avvisi (uno o più indirizzi), a chi rispondono i lettori, orari di ritiro (nella mail di conferma e nella scheda del libro sul sito); mail di prova (`impostazioni`)
 - [x] Sito: "Suggerisci un libro" in fondo alla pagina e nei risultati vuoti (`desiderio`, mail alla bibliotecaria)
 
 ### Fase 3 — Gestione prestiti
@@ -205,14 +207,12 @@ La bibliotecaria cambia solo la colonna `stato` del tab Prestiti: il trigger `on
 
 - Elenco definitivo delle categorie/scaffali
 - Logo del circolo (file vettoriale se disponibile)
-- Testo con orari e modalità di ritiro per la mail di conferma
-- Indirizzo email della bibliotecaria per le notifiche
 
 ## Setup
 
 1. Creare il Google Sheet dall'account della sagra; Estensioni → Apps Script → incollare `apps-script/Code.gs`.
 2. Eseguire `setup` dall'editor: crea i tab, i menu a tendina e la formula della scadenza.
-3. Impostazioni progetto → Proprietà script: `ADMIN_PASSWORD`, `EMAIL_BIBLIOTECARIA`, facoltativa `GOOGLE_BOOKS_KEY`. Controllo: eseguire `prova`.
+3. Impostazioni progetto → Proprietà script: `ADMIN_PASSWORD`, facoltativa `GOOGLE_BOOKS_KEY`. Controllo: eseguire `prova`. Mail degli avvisi, indirizzo per le risposte e orari di ritiro (`EMAIL_BIBLIOTECARIA`, `EMAIL_RISPOSTE`, `ORARI_RITIRO`) si impostano poi dall'area riservata, scheda Impostazioni.
 4. Distribuisci → Applicazione web → esegui come: me, accesso: chiunque. Copiare l'URL.
 5. Incollare l'URL in `API_URL` di `index.html` e `admin.html`, fare push su `main`.
 6. GitHub → Settings → Pages → deploy da `main`, cartella root.

@@ -478,6 +478,7 @@ function usa(d) {
   const usate = [...new Set(LIBRI.map(l => l.categoria).filter(Boolean))];
   CATEGORIE = (d.categorie?.length ? d.categorie : usate).filter(c => usate.includes(c));
   MAPPA = d.mappa || null;
+  ORARI = d.orari || "";
   if (filtro.categoria && !CATEGORIE.includes(filtro.categoria)) filtro.categoria = "";
   $("#q").placeholder = LIBRI.length ? `Cerca tra ${LIBRI.length} libri…` : "Titolo, autore, editore…";
   disegna();
@@ -626,7 +627,7 @@ function apri(id) {
 
 // MAPPA: dal foglio "Mappa" (ogni colonna una scaffalatura, prima riga il nome, sotto i ripiani dall'alto);
 // se il foglio non c'è, l'elenco degli scaffali in due colonne.
-let MAPPA = null;
+let MAPPA = null, ORARI = "";
 function mappaScaffali(cat) {
   const qui = c => String(c || "").trim() === cat;
   if (!MAPPA || !MAPPA.length) return `<div class="mappa">${CATEGORIE.map(c => `<span class="${qui(c) ? "qui" : ""}">${esc(c)}</span>`).join("")}</div>`;
@@ -642,7 +643,7 @@ function mappaScaffali(cat) {
 function zonaPrestito(l) {
   if (l.stato === "prenotato") return `<p>Qualcuno l'ha già chiesto in prestito. Torna a controllare tra qualche settimana.</p>`;
   if (l.stato === "in prestito") return `<p>Ora è in prestito. Torna a controllare più avanti.</p>`;
-  return `<p>Lascia nome e contatti: ti scriviamo quando è pronto e lo ritiri in biblioteca negli orari di apertura.</p>
+  return `<p>Lascia nome e contatti: ti scriviamo quando è pronto e lo ritiri in biblioteca negli orari di apertura${ORARI ? " (" + esc(ORARI) + ")" : ""}.</p>
     <div class="a-destra"><button class="bottone" type="button" data-richiedi="${esc(l.id)}">Chiedi in prestito</button></div>`;
 }
 
