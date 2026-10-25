@@ -181,6 +181,11 @@ form{display:grid;gap:12px}
 .scatta:active{background:#fff}
 .scatta[disabled]{opacity:.4}
 </style>
+<script>
+  // password ricordata: si entra subito, senza mostrare il modulo vuoto (il controllo col server avviene dopo)
+  try { if (localStorage.getItem("biblioteca-aurora-pw") || sessionStorage.getItem("biblioteca-aurora-pw")) document.documentElement.classList.add("ricordata"); } catch (e) {}
+</script>
+<style>.ricordata #accesso{display:none}.ricordata #gestione[hidden]{display:block !important}</style>
 </head>
 <body>
 
@@ -199,7 +204,7 @@ form{display:grid;gap:12px}
   <!-- accesso -->
   <section class="pannello" id="accesso">
     <h2>Area riservata</h2>
-    <p class="sotto">Per aggiungere libri al catalogo.</p>
+    <p class="sotto">Prestiti, nuovi libri e modifiche al catalogo.</p>
     <form id="form-accesso" novalidate>
       <input class="nascosto" type="text" name="utente" value="biblioteca" autocomplete="username" tabindex="-1" aria-hidden="true">
       <label>Password<input type="password" name="password" autocomplete="current-password" enterkeyhint="go"></label>
@@ -437,30 +442,50 @@ function inAttesa(bottone, testo, esito) {
 /* ---------- accesso ---------- */
 const accesso = $("#form-accesso");
 
-async function entra(password, silenzioso) {
+function riempiScaffali(categorie) {
+  libro.categoria.innerHTML = `<option value="">Scegli lo scaffale…</option>` + (categorie || []).map(c => `<option>${esc(c)}</option>`).join("");
+}
+function apriGestione(password) {
+  PASSWORD = password;
+  $("#accesso").hidden = true;
+  $("#gestione").hidden = false;
+  $("#esito-accesso").textContent = "";
+  vaiAScheda(localStorage.getItem("biblioteca-scheda") || "prestiti");
+  disegnaAnteprima();
+  if (!$("#scansiona").hidden) preparaRilevatore().catch(() => {});   // il lettore si carica in anticipo
+}
+function tornaAlLogin(messaggio) {
+  PASSWORD = "";
+  memoria.cancella();
+  document.documentElement.classList.remove("ricordata");
+  $("#gestione").hidden = true; $("#aggiunti").hidden = true; $("#accesso").hidden = false;
   const esito = $("#esito-accesso");
-  const fine = silenzioso ? () => {} : inAttesa(accesso.querySelector("button"), "Controllo…", esito);
+  esito.className = messaggio ? "esito errore" : "esito"; esito.textContent = messaggio || "";
+  accesso.password.focus();
+}
+// con la password già salvata: si entra subito e il server la controlla in sottofondo (insieme agli scaffali)
+async function caricaScaffali() {
+  const r = await invia({ azione: "login", password: PASSWORD });
+  if (r.ok) riempiScaffali(r.categorie);
+  else if (/password/i.test(r.errore || "")) tornaAlLogin("La password è cambiata: scrivila di nuovo.");
+  return r;
+}
+
+async function entra(password, silenzioso) {
+  if (silenzioso) { apriGestione(password); caricaScaffali(); return; }
+  const esito = $("#esito-accesso");
+  const fine = inAttesa(accesso.querySelector("button"), "Controllo…", esito);
   const r = await invia({ azione: "login", password });
   fine();
   if (!r.ok) {
-    const sbagliata = /password/i.test(r.errore || "");
-    if (sbagliata) memoria.cancella();   // un problema di rete non deve far perdere la password salvata
     esito.className = "esito errore";
-    esito.textContent = sbagliata ? r.errore : (r.errore || "Il server non risponde") + (silenzioso ? ". Premi Entra per riprovare." : "");
-    if (silenzioso) accesso.password.value = password;
+    esito.textContent = r.errore || "Il server non risponde: riprova.";
     accesso.password.focus();
     return;
   }
-  PASSWORD = password;
-  if (!silenzioso) memoria.salva(password, accesso.ricorda.checked);
-  const sel = libro.categoria;
-  sel.innerHTML = `<option value="">Scegli lo scaffale…</option>` + (r.categorie || []).map(c => `<option>${esc(c)}</option>`).join("");
-  $("#accesso").hidden = true;
-  $("#gestione").hidden = false;
-  vaiAScheda(localStorage.getItem("biblioteca-scheda") || "prestiti");
-  esito.textContent = "";
-  disegnaAnteprima();
-  if (!$("#scansiona").hidden) preparaRilevatore().catch(() => {});   // il lettore si carica in anticipo
+  memoria.salva(password, accesso.ricorda.checked);
+  riempiScaffali(r.categorie);
+  apriGestione(password);
 }
 
 accesso.addEventListener("submit", e => {
@@ -470,13 +495,7 @@ accesso.addEventListener("submit", e => {
   entra(pw);
 });
 
-$("#esci").addEventListener("click", () => {
-  PASSWORD = "";
-  memoria.cancella();
-  accesso.reset();
-  $("#gestione").hidden = true; $("#aggiunti").hidden = true; $("#accesso").hidden = false;
-  accesso.password.focus();
-});
+$("#esci").addEventListener("click", () => { accesso.reset(); tornaAlLogin(""); });
 
 /* ---------- schede ---------- */
 function vaiAScheda(nome) {
@@ -493,7 +512,8 @@ function vaiAScheda(nome) {
   if (nome === "desideri") caricaDesideri();
   if (nome === "impostazioni") caricaImpostazioni();
   if (nome === "modifica") { caricaCatalogo(); $("#cerca-cat").focus(); }
-  if (nome === "aggiungi" && !$("#scansiona").hidden) $("#scansiona").focus({ preventScroll: true });   // niente tastiera: prima la scansione
+  if (nome === "aggiungi" && !$("#scansiona").hidden) $("#scansiona").focus({ preventScroll: true });
+  if ((nome === "aggiungi" || nome === "modifica-scheda") && PASSWORD && libro.categoria.options.length < 2) caricaScaffali();   // se all'avvio il server non aveva risposto   // niente tastiera: prima la scansione
 }
 document.querySelector(".schede").addEventListener("click", e => { const b = e.target.closest("button[data-scheda]"); if (b) vaiAScheda(b.dataset.scheda); });
 
