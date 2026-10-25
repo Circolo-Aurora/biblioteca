@@ -20,13 +20,13 @@
   .cover dl{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin:6px 0 0}
   .cover dt{color:var(--grigio)} .cover dd{margin:0;font-weight:700;word-break:break-word}
   .tempo{color:var(--grigio);font-size:.92rem;margin:-4px 0 8px}
+  .cover .da-scrivere{border-bottom:1.5px dotted var(--inchiostro);min-height:1.5em;max-width:70mm}
   @media print{
     .cover{grid-template-columns:1fr 30mm;align-items:center;box-shadow:none;padding:4mm 5mm;margin-bottom:5mm}
     .cover .qr{display:block;width:30mm;height:30mm}
     .sezione.con-foto{grid-template-columns:minmax(0,1fr) 50mm}
     .telefono{width:50mm}
   }
-  .domande > div{columns:auto !important}   /* qui le domande sono lunghe: su due colonne non starebbero in una pagina */
 </style>
 </head>
 <body>
@@ -47,7 +47,7 @@
       <dl>
         <dt>Catalogo</dt><dd>circolo-aurora.github.io/biblioteca</dd>
         <dt>Area riservata</dt><dd>circolo-aurora.github.io/biblioteca/admin.html</dd>
-        <dt>Password</dt><dd>te la dà Mattia (non scriverla su questo foglio)</dd>
+        <dt>Password</dt><dd class="da-scrivere"></dd>
       </dl>
     </div>
     <img class="qr" src="qr-sito.svg" alt="">
@@ -75,11 +75,11 @@
       <ol class="passi">
         <li>Apri <b>circolo-aurora.github.io/biblioteca/admin.html</b>. Ci arrivi anche dal catalogo: in fondo alla pagina c'è <b>Area riservata</b>.</li>
         <li>Scrivi la password e lascia la spunta su <b>Resta collegato su questo telefono</b>. Tocca <span class="tasto">Entra</span>.</li>
-        <li>Da qui in poi il telefono se la ricorda: quando riapri l'area riservata entri subito, senza riscriverla.</li>
-        <li>Metti il catalogo tra le app (Android: Chrome, menu <span class="tasto">⋮</span> → <b>Installa app</b>; iPhone: Safari, <b>Condividi</b> → <b>Aggiungi alla schermata Home</b>). L'app è la stessa per tutti: per gestire i prestiti aprila e tocca <b>Area riservata</b> in fondo alla pagina.</li>
+        <li>Da qui in poi quel telefono se la ricorda: quando riapri l'area riservata entri subito, senza riscriverla.</li>
+        <li>Se vuoi, metti il catalogo tra le app. Android: Chrome, menu <span class="tasto">⋮</span> → <b>Aggiungi a schermata Home</b> → <b>Installa</b>. iPhone: Safari, <span class="tasto">•••</span> in basso → <b>Condividi</b> → <b>Aggiungi alla schermata Home</b>. L'app è la stessa per tutti: per gestire i prestiti aprila e tocca <b>Area riservata</b> in fondo alla pagina.</li>
         <li>Vai nelle <a href="#impostazioni">Impostazioni</a> e metti la tua mail: è il passo più importante.</li>
       </ol>
-      <p class="nota">Il telefono è tuo? Allora va bene restare collegata. Se usi un telefono o un computer di altri, alla fine tocca <b>Esci e dimentica la password su questo telefono</b>, in fondo alla pagina.</p>
+      <p class="nota">L'accesso resta memorizzato sul dispositivo dove hai scritto la password. Puoi entrare anche da un altro telefono, da un tablet o dal computer: scrivi la password lì, una volta, e anche quel dispositivo se la ricorda. Su un dispositivo che non è tuo, alla fine tocca <b>Esci e dimentica la password su questo telefono</b>, in fondo alla pagina.</p>
     </div>
     <figure class="telefono"><img src="img/accesso.png" alt="La schermata di accesso" loading="lazy"><figcaption>L'accesso</figcaption></figure>
   </section>
@@ -89,10 +89,10 @@
       <h2>2. Impostazioni: la tua mail</h2>
       <p>Tocca l'ingranaggio <span class="tasto">⚙</span>, l'ultimo tasto della fila in alto.</p>
       <ol class="passi">
-        <li><b>Chi riceve gli avvisi di richieste e suggerimenti</b>: scrivi la tua mail. Per un periodo puoi lasciare anche quella di Mattia, separate da una virgola: arrivano a tutti e due.</li>
+        <li><b>Chi riceve gli avvisi di richieste e suggerimenti</b>: scrivi la tua mail. Per un periodo puoi lasciare anche quella del gestore dell'app, separate da una virgola: gli avvisi arrivano a tutti e due.</li>
         <li><b>A chi rispondono i lettori</b>: la tua mail. Quando qualcuno risponde alla mail di conferma del prestito, scrive a te.</li>
         <li><b>Orari di ritiro</b>: per esempio «il martedì e il giovedì dalle 17 alle 19». Compaiono nella mail di conferma e nella scheda del libro sul sito.</li>
-        <li>Tocca <b>Salva e manda una mail di prova</b>. Entro qualche minuto ti arriva «Prova mail della biblioteca». Se non la vedi, guarda nello spam e segnala <b>Non è spam</b>: così anche le richieste vere arrivano in posta in arrivo.</li>
+        <li>Tocca <b>Salva e manda una mail di prova</b>. Entro qualche minuto ti arriva «Prova mail della biblioteca», da <b>sagradipenco@gmail.com</b>. Se non la vedi, guarda nello spam e segnala <b>Non è spam</b>: così anche le richieste vere arrivano in posta in arrivo.</li>
       </ol>
       <p>Le impostazioni si cambiano quando vuoi, con <span class="tasto">Salva</span>.</p>
     </div>
@@ -108,7 +108,7 @@
         <li>Nell'area riservata la scheda <b>Prestiti</b> mostra un pallino rosso con il numero di cose da fare.</li>
       </ul>
       <p><b>Cosa fai tu:</b> prendi il libro dallo scaffale, mettilo da parte e avvisa la persona che è pronto. Puoi rispondere direttamente alla mail (la risposta va a lei) oppure telefonare: in Prestiti telefono e mail si toccano e partono la chiamata o la mail.</p>
-      <p class="nota">Per ora gli avvisi al lettore (libro pronto, scadenza vicina) li mandi tu. Al lettore arriva in automatico solo la mail di conferma della richiesta.</p>
+      <p class="nota">Al lettore arriva in automatico solo la mail di conferma della richiesta. Che il libro è pronto glielo dici tu.</p>
     </div>
   </section>
 
@@ -125,6 +125,7 @@
       <ul class="punti">
         <li>In ordine di scadenza. Quelli in ritardo sono scritti in <b style="color:var(--rosso)">rosso</b>, con i giorni di ritardo: chiama o scrivi a chi lo ha.</li>
         <li><span class="tasto">Restituito</span> quando il libro torna: sul sito ridiventa disponibile.</li>
+        <li><b>Promemoria della scadenza:</b> quando manca una settimana, il lettore vede un pallino rosso sull'omino in alto a destra dell'app (la sua pagina «I miei libri»). Mail di promemoria automatiche per ora non ce ne sono: se un libro è in ritardo, lo vedi in rosso qui e contatti tu la persona.</li>
       </ul>
       <h3>Chiusi di recente</h3>
       <ul class="punti">
@@ -155,8 +156,6 @@
     <div>
       <h3>Libri senza codice a barre</h3>
       <p>I libri vecchi spesso non ce l'hanno. Scrivi tu titolo e autori (editore e anno se ci sono), scegli lo scaffale, fotografa la copertina e salva.</p>
-      <h3>Biblioteca dei ragazzi</h3>
-      <p>Per i volumi della collana <i>Biblioteca dei ragazzi</i> (allegata ai quotidiani nei primi anni 2000), che non hanno l'ISBN stampato: tocca <b>Aggiungi da una collana</b>, scegli la collana e il volume. I dati sono già pronti; quelli già in catalogo hanno la ✓.</p>
       <h3>Doppioni</h3>
       <p>Se il libro è già in catalogo l'app ti avvisa («… è già in catalogo (L0123)»). Se è davvero una seconda copia, tocca <b>Aggiungilo comunque</b>.</p>
     </div>
@@ -171,7 +170,7 @@
         <li>Tocca il libro: si apre la stessa scheda di Aggiungi, con in più <b>ISBN</b> e <b>Stato</b>.</li>
         <li>Correggi quello che serve (scaffale sbagliato, autore, copertina nuova) e tocca <span class="tasto">Salva nel catalogo</span>. <span class="tasto">Ripristina</span> rimette i dati com'erano prima delle tue modifiche.</li>
       </ol>
-      <p><b>Rimuovi dal catalogo</b> (in basso a sinistra): per un libro perso, rovinato o regalato. Ti chiede il motivo, facoltativo. Il libro sparisce dal sito ma resta in un elenco a parte nel foglio («Rimossi»): se serve, Mattia lo recupera.</p>
+      <p><b>Rimuovi dal catalogo</b> (in basso a sinistra): per un libro perso, rovinato o regalato. Ti chiede il motivo, facoltativo. Il libro sparisce dal sito ma resta in un elenco a parte nel foglio («Rimossi»): se serve, il gestore dell'app lo recupera.</p>
       <p class="nota">Lo <b>Stato</b> (disponibile, prenotato, in prestito) di solito non va toccato: lo cambiano da soli i tasti della scheda Prestiti. Usalo solo per correggere un errore.</p>
     </div>
     <figure class="telefono"><img src="img/modifica.png" alt="La ricerca nella scheda Modifica" loading="lazy"><figcaption>Modifica: cerca il libro</figcaption></figure>
@@ -209,7 +208,8 @@
           </ul>
         </div>
       </div>
-      <p>Le mail partono con il nome «Biblioteca del Circolo ARCI Aurora». A chi arrivano lo decidi nelle <a href="#impostazioni">Impostazioni</a>.</p>
+      <p>Per il momento le mail partono dall'indirizzo <b>sagradipenco@gmail.com</b>, con il nome «Biblioteca del Circolo ARCI Aurora»: se le cerchi nella posta, cerca quell'indirizzo. A chi arrivano lo decidi nelle <a href="#impostazioni">Impostazioni</a>.</p>
+      <p>Promemoria automatici della scadenza via mail per ora non ci sono: c'è solo il pallino rosso nell'app del lettore.</p>
     </div>
   </section>
 
@@ -217,16 +217,16 @@
     <div>
       <h2>9. Se qualcosa non va</h2>
       <details><summary>Compare «Il server si sta avviando, ancora qualche secondo…»</summary><p>È normale la prima volta della giornata: può volerci una ventina di secondi. Poi va veloce.</p></details>
-      <details><summary>Mi chiede di nuovo la password.</summary><p>La password è stata cambiata, oppure hai toccato «Esci». Chiedila a Mattia e spunta di nuovo «Resta collegato».</p></details>
-      <details><summary>Non mi arrivano le mail delle richieste.</summary><p>Guarda nello spam. Poi in Impostazioni controlla che la tua mail sia scritta giusta e usa «Salva e manda una mail di prova».</p></details>
+      <details><summary>Mi chiede di nuovo la password.</summary><p>La password è stata cambiata, oppure hai toccato «Esci». Chiedila al gestore dell'app e spunta di nuovo «Resta collegato».</p></details>
+      <details><summary>Non mi arrivano le mail delle richieste.</summary><p>Guarda nello spam (il mittente è sagradipenco@gmail.com). Poi in Impostazioni controlla che la tua mail sia scritta giusta e usa «Salva e manda una mail di prova».</p></details>
       <details><summary>Un lettore dice che non gli è arrivata la conferma.</summary><p>Forse ha scritto male la mail, o è finita nello spam. La richiesta però è arrivata: la vedi in Prestiti. Contattalo per telefono.</p></details>
       <details><summary>Lo scanner non legge il codice a barre.</summary><p>Serve luce: tieni il libro fermo a 10-15 cm, con il codice dritto dentro l'inquadratura. Se proprio non va, chiudi e scrivi l'ISBN a mano.</p></details>
       <details><summary>La fotocamera non si apre.</summary><p>Probabilmente il permesso è stato negato. Nelle impostazioni del browser cerca «Fotocamera» e consenti l'accesso per questo sito, poi ricarica la pagina.</p></details>
       <details><summary>Ho toccato Restituito per sbaglio.</summary><p>Il prestito è in «Chiusi di recente»: tocca Riapri e torna in prestito.</p></details>
       <details><summary>Ho toccato Annulla per sbaglio.</summary><p>Il libro è tornato disponibile. Chiedi alla persona di rifare la richiesta dal sito, oppure, se passa a ritirarlo subito, tocca Riapri in «Chiusi di recente»: il prestito parte da oggi.</p></details>
       <details><summary>Sul sito un libro ha lo stato sbagliato.</summary><p>Se c'è un prestito, sistemalo dalla scheda Prestiti. Se non c'è, apri il libro in Modifica e correggi lo Stato.</p></details>
-      <details><summary>Ho cambiato un libro ma sul sito non lo vedo.</summary><p>Ricarica la pagina del catalogo (sul telefono, tira giù la pagina). Se dopo qualche minuto non cambia, avvisa Mattia.</p></details>
-      <details><summary>Tutto il resto.</summary><p>Scrivi a Mattia: i dati sono in un foglio Google che gestisce lui, e ogni modifica fatta dall'area riservata resta registrata.</p></details>
+      <details><summary>Ho cambiato un libro ma sul sito non lo vedo.</summary><p>Ricarica la pagina del catalogo (sul telefono, tira giù la pagina). Se dopo qualche minuto non cambia, avvisa il gestore dell'app.</p></details>
+      <details><summary>Tutto il resto.</summary><p>Scrivi al gestore dell'app: i dati sono in un foglio Google che gestisce lui, e ogni modifica fatta dall'area riservata resta registrata.</p></details>
     </div>
   </section>
 

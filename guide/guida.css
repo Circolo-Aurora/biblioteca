@@ -83,8 +83,9 @@ dl.stati dd{margin:0}
   .due-colonne{grid-template-columns:1fr 1fr}
   .domande summary::before{content:"·"}
   .salto{break-before:page}
-  .domande > div{columns:2;column-gap:8mm}
-  .domande h2{column-span:all}
+  .domande > div{display:grid;grid-template-columns:1fr 1fr;column-gap:8mm;align-items:start}
+  .domande h2{grid-column:1/-1}
+  .domande details:last-child{border-bottom:0}
   .domande details{padding:6px 0}
   .domande details p{margin-left:14px}
   a{text-decoration:none}

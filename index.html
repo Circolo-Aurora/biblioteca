@@ -838,7 +838,7 @@ const dialogoMiei = $("#dialogo-miei");
 async function apriMiei() {
   $("#miei").innerHTML = `<p class="sotto-desiderio">Carico…</p>`;
   dialogoMiei.showModal();
-  const r = API_URL ? await invia({ azione: "miei", chiave: chiavePersonale() }) : { ok: true, nome: "Mattia", oggi: "2026-10-19", prestiti: [
+  const r = API_URL ? await invia({ azione: "miei", chiave: chiavePersonale() }) : { ok: true, nome: "Giulia", oggi: "2026-10-19", prestiti: [
     { id_prestito: "P0001", id_libro: "L0013", titolo: "Il ladro di fulmini", autori: "Rick Riordan", categoria: "Fantasy e avventura", stato: "in prestito", data_ritiro: "2026-09-01", scadenza: "2026-11-01" },
     { id_prestito: "P0002", id_libro: "L0009", titolo: "Matilde", autori: "Roald Dahl", categoria: "Narrativa ragazzi", stato: "richiesto", data_richiesta: "2026-10-18" },
     { id_prestito: "P0000", id_libro: "L0018", titolo: "Il Gruffalò", autori: "Julia Donaldson", categoria: "Albi illustrati", stato: "restituito", data_restituzione: "2026-08-20" }], preferiti: [] };
