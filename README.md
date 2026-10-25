@@ -148,6 +148,13 @@ Corrispondenza: tutte le parole significative del nostro titolo (prima di `:` o 
 - Il form resta sempre modificabile; senza risultati si compila a mano.
 - Scelta della categoria da menu; "Salva" → `aggiungiLibro`.
 
+## Guide
+
+- `aiuto.html`: la guida per chi legge, con le domande frequenti. Si apre dal **?** nell'intestazione del catalogo (sul telefono il disegno del libro fiorito nell'intestazione si nasconde per fare posto ai due bottoni).
+- `guide/bibliotecaria.html`: guida all'area riservata (primo accesso e Impostazioni, prestiti, nuovi libri, modifiche, desideri, mail, problemi). Link in fondo all'area riservata.
+- `guide/locandina.html`: locandina A4 con il QR del sito (`guide/qr-sito.svg`) e le istruzioni per installare l'app.
+- I PDF (`guide/guida-lettori.pdf`, `guide/guida-bibliotecaria.pdf`, `guide/locandina.pdf`) si ottengono stampando le pagine in PDF da Chrome (A4, con grafica di sfondo): lo stile di stampa è in `guide/guida.css`. Le schermate stanno in `assets/aiuto/` e `guide/img/` e vanno rifatte se cambia l'interfaccia.
+
 ## Collane senza ISBN stampato
 
 `collane.json` contiene elenchi di volumi (titolo, autori, ISBN, anno) per le serie che non riportano l'ISBN sul libro, come la *Biblioteca dei ragazzi* (Poligrafici Editoriale, allegata ai quotidiani QN, 2002-2003; 42 titoli ricostruiti dai cataloghi dei librai). Nell'area riservata, "Aggiungi da una collana" mostra i titoli in ordine alfabetico con la ✓ su quelli già in catalogo: scelto il volume, la scheda si compila, si cerca una copertina e altrimenti si fotografa. Lo scaffale scelto resta impostato per il libro successivo. Per aggiungere una collana basta un nuovo oggetto nel file.

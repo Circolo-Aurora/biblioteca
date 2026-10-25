@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Come funziona – Biblioteca del Circolo</title>
+<meta name="description" content="Come cercare un libro, chiederlo in prestito e usare l'app della biblioteca del Circolo ARCI Aurora di Leccio.">
+<meta name="theme-color" content="#f3e5e3">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="assets/icone/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="assets/icone/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Patrick+Hand&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="guide/guida.css">
+<style>
+  .cover{display:none}
+  @media print{
+    .cover{display:grid;grid-template-columns:1fr 34mm;gap:8mm;align-items:center;border:1.5px solid var(--inchiostro);border-radius:12px;padding:5mm 6mm;margin:0 0 6mm}
+    .cover img.qr{width:34mm;height:34mm}
+    .cover .marchi{display:flex;gap:4mm;align-items:center;margin-bottom:2mm}
+    .cover .marchi img{height:14mm;width:auto}
+    .cover p{margin:0}
+    .cover .link{font-weight:700;font-size:12pt}
+  }
+</style>
+</head>
+<body>
+
+<header class="testata">
+  <div class="contenitore">
+    <a href="./"><img src="assets/logo-aurora.png" alt="Torna al catalogo"></a>
+    <p class="titolo">Come funziona</p>
+    <a class="torna" href="./">← Catalogo</a>
+  </div>
+</header>
+
+<main class="contenitore">
+
+  <div class="cover">
+    <div>
+      <div class="marchi"><img src="assets/logo-aurora.png" alt=""><img src="assets/icona-biblioteca.png" alt=""></div>
+      <p>Biblioteca del Circolo ARCI Aurora · Leccio</p>
+      <p class="link">circolo-aurora.github.io/biblioteca</p>
+    </div>
+    <img class="qr" src="guide/qr-sito.svg" alt="Codice QR del sito">
+  </div>
+
+  <h1>Come funziona</h1>
+  <p class="attacco">Il catalogo della biblioteca del Circolo, sul telefono. Cerchi un libro, vedi se c'è e su quale scaffale sta, lo chiedi in prestito e lo ritiri in biblioteca. Non serve registrarsi e non serve nessuna password.</p>
+
+  <ul class="indice">
+    <li><a href="#installa">Mettila sul telefono</a></li>
+    <li><a href="#cerca">Cercare</a></li>
+    <li><a href="#scheda">La scheda del libro</a></li>
+    <li><a href="#prestito">Prestito</a></li>
+    <li><a href="#miei">I miei libri</a></li>
+    <li><a href="#preferiti">Preferiti</a></li>
+    <li><a href="#suggerisci">Suggerisci</a></li>
+    <li><a href="#domande">Domande</a></li>
+  </ul>
+
+  <section class="sezione" id="installa">
+    <div>
+      <h2>Mettila sul telefono</h2>
+      <p>Si usa come un sito, ma puoi metterla tra le app: si apre con un tocco, a schermo intero, con l'icona rosa del libro fiorito.</p>
+      <div class="due-colonne">
+        <div class="riquadro">
+          <h3>Android</h3>
+          <ol class="passi">
+            <li>Apri <b>circolo-aurora.github.io/biblioteca</b> con Chrome.</li>
+            <li>Tocca <span class="tasto">Installa l'app sul telefono</span> in fondo alla pagina. Se non c'è: menu <span class="tasto">⋮</span> in alto a destra → <b>Installa app</b> (o <b>Aggiungi a schermata Home</b>).</li>
+            <li>Conferma: l'icona compare tra le app.</li>
+          </ol>
+        </div>
+        <div class="riquadro">
+          <h3>iPhone</h3>
+          <ol class="passi">
+            <li>Apri <b>circolo-aurora.github.io/biblioteca</b> con <b>Safari</b>.</li>
+            <li>Tocca <b>Condividi</b> (il quadrato con la freccia verso l'alto; se non lo vedi, tocca prima <span class="tasto">•••</span>).</li>
+            <li>Scorri, tocca <b>Aggiungi alla schermata Home</b>, poi <b>Aggiungi</b>.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sezione con-foto" id="cerca">
+    <div>
+      <h2>Cercare un libro</h2>
+      <ul class="punti">
+        <li>La pagina iniziale mostra gli <b>ultimi arrivati</b> e poi <b>uno scaffale per riga</b>, come in biblioteca. Fai scorrere ogni riga di lato; <b>Vedi tutti →</b> apre lo scaffale intero.</li>
+        <li>Per cercare, scrivi nella casella in alto: un pezzo del titolo, il cognome dell'autore, l'editore. La ricerca guarda in tutta la biblioteca.</li>
+        <li>Mentre scorri, la lente rosa in basso a destra ti riporta alla ricerca.</li>
+        <li>Dentro uno scaffale puoi tenere <b>Solo disponibili</b> e cambiare l'ordine.</li>
+      </ul>
+      <p>In alto a destra ci sono due tasti tondi: <span class="tasto">?</span> apre questa guida, l'omino apre <a href="#miei">I miei libri</a>.</p>
+    </div>
+    <figure class="telefono"><img src="assets/aiuto/home.png" alt="La pagina iniziale del catalogo" loading="lazy"><figcaption>La pagina iniziale</figcaption></figure>
+  </section>
+
+  <section class="sezione con-foto" id="scheda">
+    <div>
+      <h2>La scheda del libro</h2>
+      <p>Tocca una copertina: trovi autore, trama, se il libro è libero e <b>Lo trovi qui</b>, la piantina con lo scaffale giusto colorato di rosso.</p>
+      <dl class="stati">
+        <dt><span class="stato disp">Disponibile</span></dt><dd>puoi chiederlo in prestito.</dd>
+        <dt><span class="stato pren">Prenotato</span></dt><dd>qualcuno l'ha già chiesto e deve passare a ritirarlo.</dd>
+        <dt><span class="stato fuori">In prestito</span></dt><dd>qualcuno lo sta leggendo: ripassa più avanti.</dd>
+      </dl>
+      <p>Una copertina disegnata, con il colore dello scaffale, vuol dire solo che non abbiamo ancora la foto: il libro c'è.</p>
+      <p>Per chiudere la scheda tocca <span class="tasto">×</span> oppure trascinala in giù dalla linguetta in alto.</p>
+    </div>
+    <figure class="telefono"><img src="assets/aiuto/scheda.png" alt="La scheda di un libro" loading="lazy"><figcaption>La scheda di un libro</figcaption></figure>
+  </section>
+
+  <section class="sezione con-foto" id="prestito">
+    <div>
+      <h2>Chiedere un libro in prestito</h2>
+      <ol class="passi">
+        <li>Nella scheda di un libro <span class="stato disp">Disponibile</span> tocca <span class="tasto">Chiedi in prestito</span>.</li>
+        <li>Scrivi nome e cognome, email e telefono, poi <span class="tasto">Invia la richiesta</span>.</li>
+        <li>Ti arriva una mail di conferma. Il libro diventa <span class="stato pren">Prenotato</span>: è tenuto per te.</li>
+        <li>Quando è pronto la bibliotecaria ti contatta. Lo ritiri nella biblioteca del Circolo negli orari di apertura.</li>
+        <li>Lo puoi tenere <b>due mesi</b> dal giorno del ritiro, poi lo riporti in biblioteca.</li>
+      </ol>
+      <p class="nota">Se non hai una mail tua, usa quella di un genitore.</p>
+    </div>
+    <figure class="telefono"><img src="assets/aiuto/richiesta.png" alt="Il modulo per chiedere un libro in prestito" loading="lazy"><figcaption>La richiesta di prestito</figcaption></figure>
+  </section>
+
+  <section class="sezione con-foto" id="miei">
+    <div>
+      <h2>I miei libri</h2>
+      <p>Si apre dall'omino in alto a destra. Ci trovi:</p>
+      <ul class="punti">
+        <li>i libri <b>da restituire</b>, con la data di scadenza;</li>
+        <li>quelli <b>in attesa di ritiro</b>;</li>
+        <li>quelli che hai <b>già letto</b>;</li>
+        <li>i tuoi <b>preferiti</b>.</li>
+      </ul>
+      <p>Se sull'omino compare un <b style="color:var(--rosso)">pallino rosso</b>, un tuo libro scade entro una settimana (o è già scaduto).</p>
+      <p>Non c'è nessuna registrazione: il telefono si ricorda di te dalla prima richiesta di prestito. Per vedere la tua pagina su un altro telefono, apri il link che trovi nella mail di conferma.</p>
+    </div>
+    <figure class="telefono"><img src="assets/aiuto/miei.png" alt="La pagina I miei libri" loading="lazy"><figcaption>I miei libri</figcaption></figure>
+  </section>
+
+  <section class="sezione" id="preferiti">
+    <div>
+      <h2>Preferiti</h2>
+      <p>Nella scheda di un libro tocca il cuore, <span class="tasto">♡ Aggiungi ai preferiti</span>: il libro finisce in <b>I miei libri → Preferiti</b>. Toccalo di nuovo per toglierlo. Serve per segnarti i libri da leggere, anche quelli che adesso sono in prestito a qualcun altro.</p>
+    </div>
+  </section>
+
+  <section class="sezione" id="suggerisci">
+    <div>
+      <h2>Suggerisci un libro</h2>
+      <p>Un libro che vorresti trovare in biblioteca? In fondo alla pagina (e quando una ricerca non trova niente) c'è <b>Suggerisci un libro</b>: scrivi titolo, autore e, se vuoi, perché lo consigli. Nome e mail sono facoltativi: lasciali se vuoi sapere quando arriva.</p>
+    </div>
+  </section>
+
+  <section class="sezione domande" id="domande">
+    <div>
+      <h2>Domande frequenti</h2>
+      <details><summary>Devo registrarmi o avere una password?</summary><p>No. Per chiedere un libro bastano nome, email e telefono.</p></details>
+      <details><summary>Quanti libri posso chiedere?</summary><p>Non c'è un limite.</p></details>
+      <details><summary>Per quanto tempo posso tenere un libro?</summary><p>Due mesi dal giorno del ritiro. Se ti serve più tempo, rispondi alla mail di conferma o chiedi in biblioteca.</p></details>
+      <details><summary>Non mi è arrivata la mail di conferma.</summary><p>Guarda nello spam o nelle promozioni. Se dopo l'invio hai visto «Richiesta inviata», la richiesta è arrivata comunque. Se la mail era scritta male, la schermata te lo dice: in quel caso chiedi in biblioteca.</p></details>
+      <details><summary>Ho cambiato idea: come annullo una richiesta?</summary><p>Rispondi alla mail di conferma, oppure dillo in biblioteca: la richiesta viene annullata e il libro torna disponibile per gli altri.</p></details>
+      <details><summary>Il libro che voglio è «Prenotato» o «In prestito».</summary><p>Ripassa tra qualche settimana. Intanto mettilo nei preferiti, così non te lo dimentichi.</p></details>
+      <details><summary>Come restituisco un libro?</summary><p>Riportalo in biblioteca negli orari di apertura. La bibliotecaria lo segna come restituito e torna disponibile per gli altri.</p></details>
+      <details><summary>«I miei libri» è vuoto, ma ho chiesto dei libri.</summary><p>Succede se usi un altro telefono o un altro browser, o se hai cancellato i dati del browser. Apri il link nella mail di conferma: la tua pagina ricompare.</p></details>
+      <details><summary>Posso usare la mail di un genitore?</summary><p>Sì. La mail serve per la conferma e per ritrovare la tua pagina.</p></details>
+      <details><summary>Non trovo un libro.</summary><p>Prova con una parola sola del titolo o con il cognome dell'autore. Se proprio non c'è, suggeriscilo: la bibliotecaria lo riceve.</p></details>
+      <details><summary>Perché alcune copertine sono disegnate?</summary><p>Non abbiamo ancora la foto di quel libro. Il libro è sullo scaffale lo stesso.</p></details>
+      <details><summary>Su iPhone non trovo «Installa».</summary><p>Su iPhone si fa da Safari: Condividi → Aggiungi alla schermata Home. Con altri browser spesso l'opzione non c'è.</p></details>
+      <details><summary>Serve internet?</summary><p>Sì, per vedere se un libro è libero e per chiederlo. Senza connessione vedi l'ultimo catalogo caricato, ma non puoi mandare richieste.</p></details>
+      <details><summary>Chi vede i miei dati?</summary><p>Nome, email e telefono li vede solo chi gestisce la biblioteca del Circolo, e servono solo per i prestiti.</p></details>
+    </div>
+  </section>
+
+  <p class="solo-schermo" style="margin-top:22px"><a href="guide/guida-lettori.pdf">Scarica questa guida in PDF</a></p>
+</main>
+
+<footer class="piede">
+  <div class="contenitore">
+    <span>Biblioteca del Circolo ARCI Aurora, Leccio (Reggello)</span>
+    <a href="./">Torna al catalogo</a>
+  </div>
+</footer>
+
+<script>
+  // in stampa (e nel PDF) le risposte sono tutte aperte
+  addEventListener("beforeprint", () => document.querySelectorAll("details").forEach(d => d.open = true));
+</script>
+</body>
+</html>

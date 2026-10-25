@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Guida all'area riservata – Biblioteca del Circolo</title>
+<meta name="theme-color" content="#f3e5e3">
+<meta name="robots" content="noindex">
+<link rel="icon" href="../assets/icone/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Patrick+Hand&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="guida.css">
+<style>
+  .cover .qr{display:none}
+  .cover{display:grid;gap:4px 16px;grid-template-columns:1fr;border:1.5px solid var(--inchiostro);border-radius:14px;padding:14px 16px;background:var(--pagina);box-shadow:3px 4px 0 var(--rosa-scuro);margin:6px 0 4px}
+  .cover .marchi{display:flex;gap:12px;align-items:center}
+  .cover .marchi img{height:44px;width:auto}
+  .cover p{margin:0}
+  .cover dl{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin:6px 0 0}
+  .cover dt{color:var(--grigio)} .cover dd{margin:0;font-weight:700;word-break:break-word}
+  .tempo{color:var(--grigio);font-size:.92rem;margin:-4px 0 8px}
+  @media print{
+    .cover{grid-template-columns:1fr 30mm;align-items:center;box-shadow:none;padding:4mm 5mm;margin-bottom:5mm}
+    .cover .qr{display:block;width:30mm;height:30mm}
+    .sezione.con-foto{grid-template-columns:minmax(0,1fr) 50mm}
+    .telefono{width:50mm}
+  }
+  .domande > div{columns:auto !important}   /* qui le domande sono lunghe: su due colonne non starebbero in una pagina */
+</style>
+</head>
+<body>
+
+<header class="testata">
+  <div class="contenitore">
+    <a href="../admin.html"><img src="../assets/logo-aurora.png" alt="Torna all'area riservata"></a>
+    <p class="titolo">Guida all'area riservata</p>
+    <a class="torna" href="../admin.html">← Area riservata</a>
+  </div>
+</header>
+
+<main class="contenitore">
+
+  <div class="cover">
+    <div>
+      <div class="marchi"><img src="../assets/logo-aurora.png" alt=""><img src="../assets/icona-biblioteca.png" alt=""></div>
+      <dl>
+        <dt>Catalogo</dt><dd>circolo-aurora.github.io/biblioteca</dd>
+        <dt>Area riservata</dt><dd>circolo-aurora.github.io/biblioteca/admin.html</dd>
+        <dt>Password</dt><dd>te la dà Mattia (non scriverla su questo foglio)</dd>
+      </dl>
+    </div>
+    <img class="qr" src="qr-sito.svg" alt="">
+  </div>
+
+  <h1>Guida per la bibliotecaria</h1>
+  <p class="attacco">Il catalogo della biblioteca è online: chi legge cerca un libro e lo chiede in prestito dal telefono. A te arriva una mail; nell'area riservata segni quando il libro viene ritirato e quando torna. Date, scadenze e disponibilità sul sito si aggiornano da sole.</p>
+
+  <ul class="indice">
+    <li><a href="#primo">Primo accesso</a></li>
+    <li><a href="#impostazioni">Impostazioni</a></li>
+    <li><a href="#richiesta">Arriva una richiesta</a></li>
+    <li><a href="#prestiti">Prestiti</a></li>
+    <li><a href="#aggiungi">Nuovi libri</a></li>
+    <li><a href="#modifica">Modifiche</a></li>
+    <li><a href="#desideri">Desideri</a></li>
+    <li><a href="#mail">Le mail</a></li>
+    <li><a href="#problemi">Problemi</a></li>
+  </ul>
+
+  <section class="sezione con-foto" id="primo">
+    <div>
+      <h2>1. Primo accesso</h2>
+      <p class="tempo">Una volta sola, dieci minuti.</p>
+      <ol class="passi">
+        <li>Apri <b>circolo-aurora.github.io/biblioteca/admin.html</b>. Ci arrivi anche dal catalogo: in fondo alla pagina c'è <b>Area riservata</b>.</li>
+        <li>Scrivi la password e lascia la spunta su <b>Resta collegato su questo telefono</b>. Tocca <span class="tasto">Entra</span>.</li>
+        <li>Da qui in poi il telefono se la ricorda: quando riapri l'area riservata entri subito, senza riscriverla.</li>
+        <li>Metti il catalogo tra le app (Android: Chrome, menu <span class="tasto">⋮</span> → <b>Installa app</b>; iPhone: Safari, <b>Condividi</b> → <b>Aggiungi alla schermata Home</b>). L'app è la stessa per tutti: per gestire i prestiti aprila e tocca <b>Area riservata</b> in fondo alla pagina.</li>
+        <li>Vai nelle <a href="#impostazioni">Impostazioni</a> e metti la tua mail: è il passo più importante.</li>
+      </ol>
+      <p class="nota">Il telefono è tuo? Allora va bene restare collegata. Se usi un telefono o un computer di altri, alla fine tocca <b>Esci e dimentica la password su questo telefono</b>, in fondo alla pagina.</p>
+    </div>
+    <figure class="telefono"><img src="img/accesso.png" alt="La schermata di accesso" loading="lazy"><figcaption>L'accesso</figcaption></figure>
+  </section>
+
+  <section class="sezione con-foto" id="impostazioni">
+    <div>
+      <h2>2. Impostazioni: la tua mail</h2>
+      <p>Tocca l'ingranaggio <span class="tasto">⚙</span>, l'ultimo tasto della fila in alto.</p>
+      <ol class="passi">
+        <li><b>Chi riceve gli avvisi di richieste e suggerimenti</b>: scrivi la tua mail. Per un periodo puoi lasciare anche quella di Mattia, separate da una virgola: arrivano a tutti e due.</li>
+        <li><b>A chi rispondono i lettori</b>: la tua mail. Quando qualcuno risponde alla mail di conferma del prestito, scrive a te.</li>
+        <li><b>Orari di ritiro</b>: per esempio «il martedì e il giovedì dalle 17 alle 19». Compaiono nella mail di conferma e nella scheda del libro sul sito.</li>
+        <li>Tocca <b>Salva e manda una mail di prova</b>. Entro qualche minuto ti arriva «Prova mail della biblioteca». Se non la vedi, guarda nello spam e segnala <b>Non è spam</b>: così anche le richieste vere arrivano in posta in arrivo.</li>
+      </ol>
+      <p>Le impostazioni si cambiano quando vuoi, con <span class="tasto">Salva</span>.</p>
+    </div>
+    <figure class="telefono"><img src="img/impostazioni.png" alt="La scheda Impostazioni" loading="lazy"><figcaption>Impostazioni</figcaption></figure>
+  </section>
+
+  <section class="sezione" id="richiesta">
+    <div>
+      <h2>3. Quando arriva una richiesta</h2>
+      <ul class="punti">
+        <li>Ti arriva una mail <b>«Nuova richiesta di prestito: titolo»</b> con il libro, lo scaffale, il nome, la mail e il telefono di chi lo chiede.</li>
+        <li>Sul sito il libro diventa <span class="stato pren">Prenotato</span>: nessun altro può chiederlo.</li>
+        <li>Nell'area riservata la scheda <b>Prestiti</b> mostra un pallino rosso con il numero di cose da fare.</li>
+      </ul>
+      <p><b>Cosa fai tu:</b> prendi il libro dallo scaffale, mettilo da parte e avvisa la persona che è pronto. Puoi rispondere direttamente alla mail (la risposta va a lei) oppure telefonare: in Prestiti telefono e mail si toccano e partono la chiamata o la mail.</p>
+      <p class="nota">Per ora gli avvisi al lettore (libro pronto, scadenza vicina) li mandi tu. Al lettore arriva in automatico solo la mail di conferma della richiesta.</p>
+    </div>
+  </section>
+
+  <section class="sezione con-foto" id="prestiti">
+    <div>
+      <h2>4. La scheda Prestiti</h2>
+      <p>Tre gruppi, dall'alto in basso:</p>
+      <h3>Da preparare</h3>
+      <ul class="punti">
+        <li><span class="tasto">Consegnato</span> quando la persona passa a ritirare il libro. Il prestito parte da oggi e scade tra due mesi; sul sito il libro risulta <span class="stato fuori">In prestito</span>.</li>
+        <li><span class="tasto">Annulla</span> se la persona rinuncia o non passa. Il libro torna <span class="stato disp">Disponibile</span>. Ti chiede conferma.</li>
+      </ul>
+      <h3>In prestito</h3>
+      <ul class="punti">
+        <li>In ordine di scadenza. Quelli in ritardo sono scritti in <b style="color:var(--rosso)">rosso</b>, con i giorni di ritardo: chiama o scrivi a chi lo ha.</li>
+        <li><span class="tasto">Restituito</span> quando il libro torna: sul sito ridiventa disponibile.</li>
+      </ul>
+      <h3>Chiusi di recente</h3>
+      <ul class="punti">
+        <li>Gli ultimi restituiti e annullati. <span class="tasto">Riapri</span> rimette il libro in prestito: serve se hai toccato <b>Restituito</b> per sbaglio.</li>
+      </ul>
+      <p><b>Aggiorna</b>, in alto a destra, ricarica l'elenco.</p>
+    </div>
+    <figure class="telefono"><img src="img/prestiti.png" alt="La scheda Prestiti" loading="lazy"><figcaption>Prestiti</figcaption></figure>
+  </section>
+
+  <section class="sezione con-foto" id="aggiungi">
+    <div>
+      <h2>5. Aggiungere un libro</h2>
+      <ol class="passi">
+        <li>Scheda <b>Aggiungi</b> → <span class="tasto">Scansiona il codice a barre</span>. Si apre la fotocamera (la prima volta il telefono chiede il permesso: <b>Consenti</b>).</li>
+        <li>Inquadra il codice a barre sul retro del libro, quello che comincia con 978. Appena lo legge, la ricerca parte da sola.</li>
+        <li>Senza fotocamera: scrivi le cifre sotto il codice a barre (l'ISBN) e tocca <span class="tasto">Cerca</span>.</li>
+        <li>La scheda si compila da sola: titolo, autori, editore, anno, trama e, se c'è, la copertina. Controlla e correggi se serve.</li>
+        <li>Scegli lo <b>Scaffale</b>: senza scaffale non si salva.</li>
+        <li>Se manca la copertina: <span class="tasto">Fotografa la copertina</span>, inquadrala nel riquadro e scatta. Oppure <b>scegli una foto</b> dalla galleria. La <span class="tasto">×</span> sull'immagine la toglie.</li>
+        <li><span class="tasto">Salva nel catalogo</span>. Il messaggio verde ti dà il codice del libro (es. L0822). Lo scaffale resta impostato per il libro dopo: comodo quando sistemi una pila dello stesso scaffale.</li>
+      </ol>
+    </div>
+    <figure class="telefono"><img src="img/aggiungi.png" alt="La scheda Aggiungi" loading="lazy"><figcaption>Aggiungi: si parte dal codice a barre</figcaption></figure>
+  </section>
+
+  <section class="sezione con-foto">
+    <div>
+      <h3>Libri senza codice a barre</h3>
+      <p>I libri vecchi spesso non ce l'hanno. Scrivi tu titolo e autori (editore e anno se ci sono), scegli lo scaffale, fotografa la copertina e salva.</p>
+      <h3>Biblioteca dei ragazzi</h3>
+      <p>Per i volumi della collana <i>Biblioteca dei ragazzi</i> (allegata ai quotidiani nei primi anni 2000), che non hanno l'ISBN stampato: tocca <b>Aggiungi da una collana</b>, scegli la collana e il volume. I dati sono già pronti; quelli già in catalogo hanno la ✓.</p>
+      <h3>Doppioni</h3>
+      <p>Se il libro è già in catalogo l'app ti avvisa («… è già in catalogo (L0123)»). Se è davvero una seconda copia, tocca <b>Aggiungilo comunque</b>.</p>
+    </div>
+    <figure class="telefono"><img src="img/aggiungi-compilato.png" alt="La scheda di un libro compilata" loading="lazy"><figcaption>La scheda compilata, pronta da salvare</figcaption></figure>
+  </section>
+
+  <section class="sezione con-foto" id="modifica">
+    <div>
+      <h2>6. Modificare un libro</h2>
+      <ol class="passi">
+        <li>Scheda <b>Modifica</b>: scrivi un pezzo del titolo, l'autore o il codice (L0123).</li>
+        <li>Tocca il libro: si apre la stessa scheda di Aggiungi, con in più <b>ISBN</b> e <b>Stato</b>.</li>
+        <li>Correggi quello che serve (scaffale sbagliato, autore, copertina nuova) e tocca <span class="tasto">Salva nel catalogo</span>. <span class="tasto">Ripristina</span> rimette i dati com'erano prima delle tue modifiche.</li>
+      </ol>
+      <p><b>Rimuovi dal catalogo</b> (in basso a sinistra): per un libro perso, rovinato o regalato. Ti chiede il motivo, facoltativo. Il libro sparisce dal sito ma resta in un elenco a parte nel foglio («Rimossi»): se serve, Mattia lo recupera.</p>
+      <p class="nota">Lo <b>Stato</b> (disponibile, prenotato, in prestito) di solito non va toccato: lo cambiano da soli i tasti della scheda Prestiti. Usalo solo per correggere un errore.</p>
+    </div>
+    <figure class="telefono"><img src="img/modifica.png" alt="La ricerca nella scheda Modifica" loading="lazy"><figcaption>Modifica: cerca il libro</figcaption></figure>
+  </section>
+
+  <section class="sezione con-foto" id="desideri">
+    <div>
+      <h2>7. Desideri</h2>
+      <p>Qui arrivano i libri che i lettori suggeriscono dal sito (ti arriva anche una mail «Libro suggerito»). Il pallino rosso conta quelli nuovi.</p>
+      <ul class="punti">
+        <li><span class="tasto">Acquistato</span> quando lo compri o ti viene regalato; poi lo aggiungi dalla scheda Aggiungi.</li>
+        <li><span class="tasto">Scarta</span> se non fa per la biblioteca.</li>
+        <li><span class="tasto">Riapri</span> per rimetterlo tra i nuovi.</li>
+      </ul>
+      <p>Se chi l'ha suggerito ha lasciato la mail, toccala per scrivergli che il libro è arrivato.</p>
+    </div>
+    <figure class="telefono"><img src="img/desideri.png" alt="La scheda Desideri" loading="lazy"><figcaption>Desideri</figcaption></figure>
+  </section>
+
+  <section class="sezione" id="mail">
+    <div>
+      <h2>8. Le mail, in breve</h2>
+      <div class="due-colonne">
+        <div class="riquadro">
+          <h3>Arrivano a te</h3>
+          <ul class="punti">
+            <li><b>Nuova richiesta di prestito</b>: rispondendo, scrivi a chi ha chiesto il libro.</li>
+            <li><b>Libro suggerito</b>: un nuovo desiderio.</li>
+          </ul>
+        </div>
+        <div class="riquadro">
+          <h3>Arrivano al lettore</h3>
+          <ul class="punti">
+            <li><b>Richiesta di prestito</b>: la conferma, con gli orari di ritiro e il link alla sua pagina «I miei libri». Se risponde, scrive a te.</li>
+          </ul>
+        </div>
+      </div>
+      <p>Le mail partono con il nome «Biblioteca del Circolo ARCI Aurora». A chi arrivano lo decidi nelle <a href="#impostazioni">Impostazioni</a>.</p>
+    </div>
+  </section>
+
+  <section class="sezione domande" id="problemi">
+    <div>
+      <h2>9. Se qualcosa non va</h2>
+      <details><summary>Compare «Il server si sta avviando, ancora qualche secondo…»</summary><p>È normale la prima volta della giornata: può volerci una ventina di secondi. Poi va veloce.</p></details>
+      <details><summary>Mi chiede di nuovo la password.</summary><p>La password è stata cambiata, oppure hai toccato «Esci». Chiedila a Mattia e spunta di nuovo «Resta collegato».</p></details>
+      <details><summary>Non mi arrivano le mail delle richieste.</summary><p>Guarda nello spam. Poi in Impostazioni controlla che la tua mail sia scritta giusta e usa «Salva e manda una mail di prova».</p></details>
+      <details><summary>Un lettore dice che non gli è arrivata la conferma.</summary><p>Forse ha scritto male la mail, o è finita nello spam. La richiesta però è arrivata: la vedi in Prestiti. Contattalo per telefono.</p></details>
+      <details><summary>Lo scanner non legge il codice a barre.</summary><p>Serve luce: tieni il libro fermo a 10-15 cm, con il codice dritto dentro l'inquadratura. Se proprio non va, chiudi e scrivi l'ISBN a mano.</p></details>
+      <details><summary>La fotocamera non si apre.</summary><p>Probabilmente il permesso è stato negato. Nelle impostazioni del browser cerca «Fotocamera» e consenti l'accesso per questo sito, poi ricarica la pagina.</p></details>
+      <details><summary>Ho toccato Restituito per sbaglio.</summary><p>Il prestito è in «Chiusi di recente»: tocca Riapri e torna in prestito.</p></details>
+      <details><summary>Ho toccato Annulla per sbaglio.</summary><p>Il libro è tornato disponibile. Chiedi alla persona di rifare la richiesta dal sito, oppure, se passa a ritirarlo subito, tocca Riapri in «Chiusi di recente»: il prestito parte da oggi.</p></details>
+      <details><summary>Sul sito un libro ha lo stato sbagliato.</summary><p>Se c'è un prestito, sistemalo dalla scheda Prestiti. Se non c'è, apri il libro in Modifica e correggi lo Stato.</p></details>
+      <details><summary>Ho cambiato un libro ma sul sito non lo vedo.</summary><p>Ricarica la pagina del catalogo (sul telefono, tira giù la pagina). Se dopo qualche minuto non cambia, avvisa Mattia.</p></details>
+      <details><summary>Tutto il resto.</summary><p>Scrivi a Mattia: i dati sono in un foglio Google che gestisce lui, e ogni modifica fatta dall'area riservata resta registrata.</p></details>
+    </div>
+  </section>
+
+  <p class="solo-schermo" style="margin-top:22px"><a href="guida-bibliotecaria.pdf">Scarica questa guida in PDF</a></p>
+</main>
+
+<footer class="piede">
+  <div class="contenitore">
+    <span>Biblioteca del Circolo ARCI Aurora, Leccio (Reggello)</span>
+    <a href="../admin.html">Torna all'area riservata</a>
+  </div>
+</footer>
+<script>addEventListener("beforeprint", () => document.querySelectorAll("details").forEach(d => d.open = true));</script>
+</body>
+</html>

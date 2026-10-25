@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Locandina – Biblioteca del Circolo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Patrick+Hand&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="guida.css">
+<style>
+  @page{size:A4;margin:0}
+  html,body{background:#fff}
+  .foglio{width:210mm;height:297mm;margin:0 auto;padding:12mm 16mm 10mm;display:flex;flex-direction:column;background:#fff;overflow:hidden}
+  @media screen{body{background:var(--rosa);padding:16px 0}.foglio{box-shadow:0 2px 12px rgba(0,0,0,.15)}}
+  .alto{display:flex;align-items:center;justify-content:space-between;gap:8mm}
+  .alto .aurora{height:20mm;width:auto}
+  .alto .fiori{height:25mm;width:auto}
+  h1{font:400 36pt/1 var(--mano);margin:5mm 0 3mm;text-align:center}
+  .sotto{font-size:14pt;text-align:center;margin:0 auto 6mm;max-width:150mm;line-height:1.35}
+  .qr-box{align-self:center;background:var(--rosa);border:1.8px solid var(--inchiostro);border-radius:8mm;padding:7mm 9mm 5mm;box-shadow:2mm 2.5mm 0 var(--rosa-scuro);text-align:center}
+  .qr-box img{width:64mm;height:64mm;background:#fff;border-radius:3mm}
+  .qr-box .inquadra{font:400 17pt/1.1 var(--mano);margin:4mm 0 1mm}
+  .qr-box .indirizzo{font-weight:700;font-size:12.5pt;margin:0}
+  h2{font:400 20pt/1.1 var(--mano);text-align:center;margin:7mm 0 3mm}
+  .colonne{display:grid;grid-template-columns:1fr 1fr;gap:7mm}
+  .riquadro{padding:4mm 5mm 2mm}
+  .riquadro h3{font-size:16pt;margin:0 0 2mm}
+  ol.passi{font-size:11.5pt;line-height:1.4}
+  ol.passi li{margin-bottom:2mm}
+  .basso{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:6mm;border-top:1.5px solid var(--rosa-scuro);padding-top:4mm;font-size:10.5pt;color:var(--grigio)}
+  .basso .vivi{display:flex;align-items:center;gap:3mm;font:400 13pt/1.1 var(--mano);color:var(--inchiostro)}
+  .basso .vivi img{height:15mm;width:auto}
+</style>
+</head>
+<body>
+<div class="foglio">
+  <div class="alto">
+    <img class="aurora" src="../assets/logo-aurora.png" alt="Circolo ARCI Aurora Leccio">
+    <img class="fiori" src="../assets/icona-biblioteca.png" alt="">
+  </div>
+
+  <h1>La biblioteca del Circolo<br>sul tuo telefono</h1>
+  <p class="sotto">Cerca un libro, guarda se c'è e su quale scaffale sta, chiedilo in prestito e passa a ritirarlo. Senza registrazione.</p>
+
+  <div class="qr-box">
+    <img src="qr-sito.svg" alt="Codice QR">
+    <p class="inquadra">Inquadra con la fotocamera</p>
+    <p class="indirizzo">circolo-aurora.github.io/biblioteca</p>
+  </div>
+
+  <h2>Mettila tra le app</h2>
+  <div class="colonne">
+    <div class="riquadro">
+      <h3>Android</h3>
+      <ol class="passi">
+        <li>Apri il sito con <b>Chrome</b>.</li>
+        <li>Tocca <span class="tasto">Installa l'app sul telefono</span> in fondo alla pagina, oppure menu <span class="tasto">⋮</span> → <b>Installa app</b>.</li>
+        <li>Conferma: l'icona rosa compare tra le app.</li>
+      </ol>
+    </div>
+    <div class="riquadro">
+      <h3>iPhone</h3>
+      <ol class="passi">
+        <li>Apri il sito con <b>Safari</b>.</li>
+        <li>Tocca <b>Condividi</b> (il quadrato con la freccia; se non lo vedi, prima <span class="tasto">•••</span>).</li>
+        <li>Tocca <b>Aggiungi alla schermata Home</b>, poi <b>Aggiungi</b>.</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="basso">
+    <span>Biblioteca del Circolo ARCI Aurora · Leccio<br>Hai dubbi? Nell'app tocca <b>?</b> in alto a destra.</span>
+    <span class="vivi"><img src="../assets/logo-vivileccio.png" alt="ViviLeccio">In collaborazione<br>con ViviLeccio</span>
+  </div>
+</div>
+</body>
+</html>
